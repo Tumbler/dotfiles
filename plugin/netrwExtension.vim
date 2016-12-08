@@ -1,7 +1,7 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/02/2016 09:58 AM
+" Last Edited: 12/08/2016 11:33 AM
 " Version: 1.2
 
 let g:netrwExtension = 1
@@ -20,6 +20,7 @@ let s:netrw_pathmemNum = 200
 if has("autocmd")
 augroup netrw_Extension
    au!
+   autocmd VimEnter     * call CheckForPathMem()
    autocmd filetype netrw call Remap_netrw()
 augroup END
 endif
