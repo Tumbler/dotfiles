@@ -412,8 +412,6 @@ augroup Tumbler
    "Make sure to wipe out previous declarations so we can reload safely
 
    " Initialization (can't be called until functions are loaded)
-   autocmd VimEnter    * call CheckForPathMem()
-                         " Initializes Path memory
    autocmd VimEnter    * call LoadSession()
                          " If a session was previously saved, load it
 
