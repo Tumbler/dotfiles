@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/08/2016 10:39 AM
+" Last Edited: 12/13/2016 02:38 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -228,9 +228,13 @@ nnoremap sa a_<Esc>r
 "   to auto-indent as it pastes (Almost never what you want).
 noremap  <C-v> :set paste<CR>"+gP:set nopaste<CR>
 inoremap <C-v> <C-o>:set paste<CR><C-r>+<C-o>:set nopaste<CR>
-cnoremap <C-v> <C-r>"
+cnoremap <C-v> <C-r>+
 vnoremap <C-v> d"+gP
 vnoremap <C-c> "+y
+
+cnoremap <C-p> <C-r>"
+inoremap <C-p> <C-r>"
+" "Pastes" the current unnamed register
 
 " AutoComplete. (Activated with Ctrl+Space)
 inoremap <C-Space> <C-n>
@@ -527,7 +531,6 @@ endfunction
 "  SaveBuffer <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Saves buffer and updates last edited value if applicable.
 function! SaveBuffer(source)
-   try
    if (&mod == 1 || a:source == 4)
       " Only update the last edited info if the file has been modified.
       let firstLine = getline(1)
@@ -571,12 +574,6 @@ function! SaveBuffer(source)
          exec feedkeys(":q\<CR>")
       endif
    endif
-   catch /^Vim\%((\a\+)\)\=:E382/
-      " This try catch is a workaround to a current bug in netrw. Once the bug
-      " is fixed this can be removed.
-      set buftype=
-      write
-   endtry
 endfunction
 
 "  OpenVimrc ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -830,9 +827,9 @@ endfunction
 "   brief: Opens a new tab with netrw, pointing at previous file. Also enables
 "          cvs hilighting if that plugin is enabled.
 function! OpenNewTabWithNetrw()
-   let g:tmp = expand('%')
+   let l:tmp = expand('%')
    Te
-   exe "normal /".g:tmp."\r"
+   exe "normal /".l:tmp."\r"
    if exists('g:cvsnetrwIntegration')
       call UpdateCVSHilighting()
    endif
