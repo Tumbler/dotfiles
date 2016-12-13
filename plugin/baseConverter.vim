@@ -1,8 +1,8 @@
 " @Tracked
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/01/2016 12:08 PM
-" Version: 1.1
+" Last Edited: 12/13/2016 03:00 PM
+" Version: 1.2
 
 let g:vimBaseConversion = 1
 
@@ -118,7 +118,7 @@ function! HexConverter(wordUnderCursor, ...)
       exe "echo '  BIN: ' . printf('%".N."s', BaseConversion(rawNumber, base, 2, 1)) .'\n'." .
           \    "'  OCT: ' . printf('%".N."s', BaseConversion(rawNumber, base, 8, 1)) .'\n'." .
           \    "'  DEC: ' . printf('%".N."s', BaseConversion(rawNumber, base, 10, 1)).'\n'." .
-          \    "'  HEX: ' . printf('%".N."s', BaseConversion(rawNumber, base, 16, 1)).'\n'." .
+          \    "'  HEX: ' . printf('%".N."s', BaseConversion(rawNumber, base, 16, 1))"
    else
       if (t:inConvertMode)
          set cmdheight=1
