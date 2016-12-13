@@ -1,8 +1,8 @@
 " @Tracked
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/06/2016 04:46 PM
-" Version: 1.2
+" Last Edited: 12/13/2016 03:01 PM
+" Version: 1.3
 
 "TODO: Add Directory checking, (It's a lot, but it's worth it)
 
@@ -155,11 +155,13 @@ function! SetupDirDiffTab(firstDir, secondDir)
    let w:browseBuff = bufnr('%')
    set nomodifiable
    call HighlightDir(t:CommonSame, t:CommonDiff, t:firstUnique)
-   map <buffer> j :let t:firstIndex = (t:firstIndex + 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . t:firstSorted[t:firstIndex] . "'"<CR>n
-   map <buffer> k :let t:firstIndex = (t:firstIndex + len(t:firstSorted) - 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . t:firstSorted[t:firstIndex] . "'"<CR>N
-   map <buffer> i :call SortDiffDir()<CR>
-   map <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
-   map <buffer> - <NOP>
+   noremap <buffer> j :let t:firstIndex = (t:firstIndex + 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . EscapeRegex(t:firstSorted[t:firstIndex]) . "'"<CR>n
+   map     <Down>   j
+   noremap <buffer> k :let t:firstIndex = (t:firstIndex + len(t:firstSorted) - 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . EscapeRegex(t:firstSorted[t:firstIndex]) . "'"<CR>N
+   map     <Up>     k
+   noremap <buffer> i :call SortDiffDir()<CR>
+   noremap <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
+   noremap <buffer> - <NOP>
    let b:dirBinds = 1
    exe 'set title titlestring=' . t:firstDir
    set scrollbind
@@ -175,11 +177,13 @@ function! SetupDirDiffTab(firstDir, secondDir)
    call HighlightDir(t:CommonSame, t:CommonDiff, t:secondUnique)
    exe "let @/ = '" . t:secondSorted[t:secondIndex] . "'"
    normal n
-   map <buffer> j :let t:secondIndex = (t:secondIndex + 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . t:secondSorted[t:secondIndex] . "'"<CR>n
-   map <buffer> k :let t:secondIndex = (t:secondIndex + len(t:secondSorted) - 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . t:secondSorted[t:secondIndex] . "'"<CR>N
-   map <buffer> i :call SortDiffDir()<CR>
-   map <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
-   map <buffer> - <NOP>
+   noremap <buffer> j :let t:secondIndex = (t:secondIndex + 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . EscapeRegex(t:secondSorted[t:secondIndex]) . "'"<CR>n
+   map     <Down>   j
+   noremap <buffer> k :let t:secondIndex = (t:secondIndex + len(t:secondSorted) - 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . EscapeRegex(t:secondSorted[t:secondIndex]) . "'"<CR>N
+   map     <Up>     k
+   noremap <buffer> i :call SortDiffDir()<CR>
+   noremap <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
+   noremap <buffer> - <NOP>
    let b:dirBinds = 1
    set scrollbind
    set scrolloff=9999
@@ -210,11 +214,13 @@ function! SortDiffDir()
          let w:browseBuff = bufnr('%')
          call HighlightDir()
          if !(exists('b:dirBinds'))
-            map <buffer> j :let t:firstIndex = (t:firstIndex + 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . t:firstSorted[t:firstIndex] . "'"<CR>n
-            map <buffer> k :let t:firstIndex = (t:firstIndex + len(t:firstSorted) - 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . t:firstSorted[t:firstIndex] . "'"<CR>N
-            map <buffer> i :call SortDiffDir()<CR>
-            map <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
-            map <buffer> - <NOP>
+            noremap <buffer> j :let t:firstIndex = (t:firstIndex + 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . EscapeRegex(t:firstSorted[t:firstIndex]) . "'"<CR>n
+            map     <Down>   j
+            noremap <buffer> k :let t:firstIndex = (t:firstIndex + len(t:firstSorted) - 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . EscapeRegex(t:firstSorted[t:firstIndex]) . "'"<CR>N
+            map     <Up>     k
+            noremap <buffer> i :call SortDiffDir()<CR>
+            noremap <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
+            noremap <buffer> - <NOP>
             let b:dirBinds = 1
          endif
          normal w
@@ -223,11 +229,13 @@ function! SortDiffDir()
          call HighlightDir()
          let t:sortOrder = 1
          if !(exists('b:dirBinds'))
-            map <buffer> j :let t:secondIndex = (t:secondIndex + 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . t:secondSorted[t:secondIndex] . "'"<CR>n
-            map <buffer> k :let t:secondIndex = (t:secondIndex + len(t:secondSorted) - 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . t:secondSorted[t:secondIndex] . "'"<CR>N
-            map <buffer> i :call SortDiffDir()<CR>
-            map <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
-            map <buffer> - <NOP>
+            noremap <buffer> j :let t:secondIndex = (t:secondIndex + 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . EscapeRegex(t:secondSorted[t:secondIndex]) . "'"<CR>n
+            map     <Down>   j
+            noremap <buffer> k :let t:secondIndex = (t:secondIndex + len(t:secondSorted) - 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . EscapeRegex(t:secondSorted[t:secondIndex]) . "'"<CR>N
+            map     <Up>     k
+            noremap <buffer> i :call SortDiffDir()<CR>
+            noremap <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
+            noremap <buffer> - <NOP>
             let b:dirBinds = 1
          endif
          if (initialWin == 1)
@@ -247,11 +255,13 @@ function! SortDiffDir()
          let w:browseBuff = bufnr('%')
          call HighlightDir()
          if !(exists('b:dirBinds'))
-            map <buffer> j :let t:firstIndex = (t:firstIndex + 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . t:firstSorted[t:firstIndex] . "'"<CR>n
-            map <buffer> k :let t:firstIndex = (t:firstIndex + len(t:firstSorted) - 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . t:firstSorted[t:firstIndex] . "'"<CR>N
-            map <buffer> i :call SortDiffDir()<CR>
-            map <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
-            map <buffer> - <NOP>
+            noremap <buffer> j :let t:firstIndex = (t:firstIndex + 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . EscapeRegex(t:firstSorted[t:firstIndex]) . "'"<CR>n
+            map     <Down>   j
+            noremap <buffer> k :let t:firstIndex = (t:firstIndex + len(t:firstSorted) - 1) % len(t:firstSorted)<CR>:let t:secondIndex = t:firstIndex<CR>:exe "let @/ = '" . EscapeRegex(t:firstSorted[t:firstIndex]) . "'"<CR>N
+            map     <Up>     k
+            noremap <buffer> i :call SortDiffDir()<CR>
+            noremap <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
+            noremap <buffer> - <NOP>
          endif
          normal w
          exe 'edit! ' . t:DiffDirFiles[5]
@@ -259,11 +269,13 @@ function! SortDiffDir()
          call HighlightDir()
          let t:sortOrder = 1
          if !(exists('b:dirBinds'))
-            map <buffer> j :let t:secondIndex = (t:secondIndex + 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . t:secondSorted[t:secondIndex] . "'"<CR>n
-            map <buffer> k :let t:secondIndex = (t:secondIndex + len(t:secondSorted) - 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . t:secondSorted[t:secondIndex] . "'"<CR>N
-            map <buffer> i :call SortDiffDir()<CR>
-            map <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
-            map <buffer> - <NOP>
+            noremap <buffer> j :let t:secondIndex = (t:secondIndex + 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . EscapeRegex(t:secondSorted[t:secondIndex]) . "'"<CR>n
+            map     <Down>   j
+            noremap <buffer> k :let t:secondIndex = (t:secondIndex + len(t:secondSorted) - 1) % len(t:secondSorted)<CR>:let t:firstIndex = t:secondIndex<CR>:exe "let @/ = '" . EscapeRegex(t:secondSorted[t:secondIndex]) . "'"<CR>N
+            map     <Up>     k
+            noremap <buffer> i :call SortDiffDir()<CR>
+            noremap <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
+            noremap <buffer> - <NOP>
             let b:dirBinds = 1
          endif
          if (initialWin == 1)
@@ -348,7 +360,7 @@ function! DiffCurrentFile(firstFile, secondFile)
       endif
       set modifiable
       diffthis
-      map <buffer> - :call BackoutOfDIff()<CR>
+      noremap <buffer> - :call BackoutOfDIff()<CR>
       if (winnr() == 1)
          normal l
          normal gg
@@ -362,7 +374,7 @@ function! DiffCurrentFile(firstFile, secondFile)
       endif
       set modifiable
       diffthis
-      map <buffer> - :call BackoutOfDIff()<CR>
+      noremap <buffer> - :call BackoutOfDIff()<CR>
       normal w
       set visualbell
       normal gg]c[c
@@ -406,7 +418,7 @@ function! BackoutOfDIff()
       endif
    else
       " If we aren't in a DiffDir tab, then we probably were trying to Explore.
-      map <buffer> - :call SmartExplore('file')<CR>
+      noremap <buffer> - :call SmartExplore('file')<CR>
       call SmartExplore('file')
    endif
 endfunction
@@ -422,3 +434,10 @@ function! SetTabName(...)
    endif
 endfunction
 
+"  EscapeRegex ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Backslash escapes the characters for a "magic mode" regex. Returns
+"          escaped string.
+function! EscapeRegex(input)
+   return escape(a:input, '\^$.*~[&')
+endfunction
+"<< End of dirDiff plugin <><><><><><><><><><><><><><><><><><><><><><><><><><><>
