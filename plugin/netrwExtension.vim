@@ -1,8 +1,8 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/08/2016 11:33 AM
-" Version: 1.2
+" Last Edited: 12/13/2016 03:01 PM
+" Version: 1.3
 
 let g:netrwExtension = 1
 
@@ -71,18 +71,18 @@ function! SmartExplore(origin)
       " Sets the current editing window (Makes netrw open file in same window)
    else
       if (a:origin == 'netrw')
-         let l:currentFilename = fnamemodify(b:netrw_curdir, ':t')
-         let l:currentFilename .= '/'
+         let l:currentFilename = substitute(fnamemodify(b:netrw_curdir, ':t'), '/\=$', '/', '')
       else
          let l:currentFilename = @%
       endif
       if (a:origin == 'netrw')
          call SyncDirs()
-         call netrw#LocalBrowseCheck(fnamemodify(b:netrw_curdir, ':p:h:h'))
+         call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
       else
          Explore
       endif
-      call search('^' . l:currentFilename . '\*\=$')
+      " TODO: Changed this, see if it works now.
+      call search('^' . EscapeRegex(l:currentFilename) . '\*\=$')
       call AddToPathList(l:currentFilename)
       if (&scrolloff =~# '0')
          normal zz
@@ -95,17 +95,16 @@ function! SmartExplore(origin)
 endfunction
 
 "  SmartInspect <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: Expores to file or dir under cursor, centers the screen and saves
+"   brief: Explores to file or dir under cursor, centers the screen and saves
 "          the choice so we can remember it next time we're here.
 function! SmartInspect()
    " Grabs line up to the first tab
    let file = matchstr(getline('.'), '^[^\t]*')
-   echom file
    call AddToPathList(file)
    call SyncDirs()
 
    if (file =~ '/$')
-      exec "call netrw#LocalBrowseCheck('" . ExpandDir(file, 0). "')"
+      exec "call netrw#LocalBrowseCheck('" . ExpandDir(file, 1). "')"
       if (&scrolloff =~# '0')
          normal zz
       endif
@@ -220,4 +219,12 @@ function! DirFind()
       call search(usr)
    endif
 endfunction
+
+"  EscapeRegex ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Backslash escapes the characters for a "magic mode" regex. Returns
+"          escaped string.
+function! EscapeRegex(input)
+   return escape(a:input, '\^$.*~[&')
+endfunction
+
 "<< End of netrw extension plugin <><><><><><><><><><><><><><><><><><><><><><><>
