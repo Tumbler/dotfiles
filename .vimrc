@@ -58,7 +58,7 @@ set diffopt=filler,vertical,context:1000000
 " Automatically opens diffs with filler lines for sync, vertically
 "   (side-by-side), and with all folds open
 set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym
-" vimgrep ignores object files TODO: This seems to be getting set from netrw now for some reaston. May need to set up an autocmd for a per buffer basis.
+" vimgrep ignores object files TODO: This seems to be getting set from netrw now for some reason. May need to set up an autocmd for a per buffer basis.
 set wildmenu
 " Tab completing in command-line gives visual menu
 set shellslash
@@ -198,8 +198,10 @@ inoremap <A-BS> <Del>
 noremap j gj
 noremap k gk
 " If you need the default behavior for some reason use this:
-noremap <S-A-j> j
-noremap <S-A-k> k
+
+noremap gj j
+noremap gk k
+" Thanks DJMcMayhem, that was a good idea.
 
 cnoremap <expr> <Up>   getcmdtype() ==# '@' ? InputHistory(0): '<Up>'
 cnoremap <expr> <Down> getcmdtype() ==# '@' ? InputHistory(1): '<Down>'
@@ -400,6 +402,7 @@ map      <S-F6>    :call Javadoc()<Esc>
 nnoremap <F7>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 inoremap <F7>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 " Reloads syntax file and vimrc
+nnoremap <F9>    :%MkVimball TumblerVimball<CR>
 nnoremap <S-F12> :call RemoveTrailingWhitespace() <BAR> retab<CR>
 inoremap <S-F12> <C-o>:call RemoveTrailingWhitespace() <BAR> retab<CR>
 " Removes all trailing whitespace in file
