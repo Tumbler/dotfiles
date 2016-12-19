@@ -1,7 +1,7 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/07/2016 02:34 PM
+" Last Edited: 12/19/2016 08:46 AM
 " Version: 1.5
 
 let g:vimProjectManager = 1
@@ -1029,17 +1029,25 @@ function! TraverseCtag(...)
       " This is <A-q>
       normal ñ
       let l:windowNr = winnr("$")
+      let tag = expand('<cword>')
+      let tagFile = ReturnTagFile(tag)
       if (&columns >= (80 * (l:windowNr + 1)))
          vsplit
          wincmd l
          exec "tag " . expand("<cword>")
-      elseif (&mod == 0)
-         normal 
+      elseif (&mod == 0 || expand('%') == tagFile)
+         normal! 
       else
          tab split
          exec "tag " . expand("<cword>")
       endif
-      normal! zt
+      if (getline('.') =~ '\s*}')
+         " If we're at the end of a c struct then we want to be able to see
+         "   the lines before the tag and not after.
+         normal! z-
+      else
+         normal! zt
+      endif
    catch /^Vim\%((\a\+)\)\=:E433/
       "No tag file, try to generate them and retry
       if (a:0 == 0)
@@ -1079,5 +1087,19 @@ function! GenerateCTags()
       endif
    endif
 endfunction
+
+function! ReturnTagFile(tag)
+   try
+      let tagString = split(execute("tselect ".a:tag), "\n")[1]
+      let tagString = matchstr(tagString, '[^/\\]*$')
+      return tagString
+   catch /^Vim\%((\a\+)\)\=:E426/
+      echohl ERROR
+      echo "Tag not found!"
+      echohl NORMAL
+      return ""
+   endtry
+endfunction
+
 
 "<< End of Vim Project Manager plugin <><><><><><><><><><><><><><><><><><><><><>
