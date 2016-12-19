@@ -5,6 +5,7 @@
 " Version: 1.3
 
 "TODO: Add Directory checking, (It's a lot, but it's worth it)
+"TODO: Make colors absolute
 
 " DirDiff
 "  brief: Diffs two directories and allows you to quickly jump between different
@@ -337,9 +338,15 @@ function! HighlightDir(...)
          let entry = substitute(entry, '\.', '\\\.', '')
          exe "syn match Unique '" . entry . "$'"
       endfor
-      hi link CommonSame Identifier
-      hi link CommonDiff Constant
-      hi link Unique Preproc
+      if (&background == "dark")
+         hi CommonSame cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
+         hi CommonDiff cterm=NONE ctermbg=bg ctermfg=116 gui=NONE guibg=bg guifg=SkyBlue
+         hi Unique     cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
+      else
+         hi CommonSame cterm=NONE ctermbg=bg ctermfg=28  gui=NONE guibg=bg guifg=DarkGreen
+         hi CommonDiff cterm=NONE ctermbg=bg ctermfg=30  gui=NONE guibg=bg guifg=Darkcyan
+         hi Unique     cterm=NONE ctermbg=bg ctermfg=167 gui=NONE guibg=bg guifg=indianred
+      endif
    endif
 endfunction
 
