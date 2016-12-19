@@ -1,7 +1,7 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/19/2016 08:46 AM
+" Last Edited: 12/19/2016 10:44 AM
 " Version: 1.5
 
 let g:vimProjectManager = 1
@@ -1034,12 +1034,12 @@ function! TraverseCtag(...)
       if (&columns >= (80 * (l:windowNr + 1)))
          vsplit
          wincmd l
-         exec "tag " . expand("<cword>")
+         exec "tag " . tag
       elseif (&mod == 0 || expand('%') == tagFile)
          normal! 
       else
          tab split
-         exec "tag " . expand("<cword>")
+         exec "tag " . tag
       endif
       if (getline('.') =~ '\s*}')
          " If we're at the end of a c struct then we want to be able to see
