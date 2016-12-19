@@ -114,7 +114,16 @@ function! SmartInspect()
       call RememberLocation()
       normal C
    else
-      exe "edit " . fnamemodify(file, ":p")
+      if (file =~ '\(\.vba\)\|\(.vmb\)$')
+         let choice = input("Source Vimball? y/n (no to edit)", "")
+         if (choice =~ '^y')
+            exe "source ".file
+         else
+            exe "edit " . fnamemodify(file, ":p")
+         endif
+      else
+         exe "edit " . fnamemodify(file, ":p")
+      endif
    endif
 endfunction
 
@@ -204,7 +213,7 @@ endfunction
 "          they just get reset. Putting them on a timer allows us to set them
 "          after netrw and claim the last word.
 function! Remap_netrwAdditionalOptions(timer)
-   set buftype=nofile
+   "set buftype=nofile
 endfunction
 
 "  DirFind ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
