@@ -1,6 +1,6 @@
 "@Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/07/2016 04:33 PM
+" Last Edited: 12/16/2016 01:13 PM
 " Version: 2.1
 
 " Note: This plugin is merely an extension to the "cvsmenu" plugin. It will
@@ -9,9 +9,6 @@
 
 let g:cvsnetrwIntegration = 1
 
-set wildignore+=.CVSfolderStatus
-" Don't generally want this file to be inspected. It should just work in the
-"   background.
 if !isdirectory($HOME.'/vimfiles/cvs')
    call mkdir($HOME.'/vimfiles/cvs')
 endif
@@ -29,12 +26,14 @@ nnoremap <A-_> :call StartCheck(1)<CR>
 command! CVSCommit :call CommitWithCVS()
 command! CVSAdd    :call AddWithCVS()
 
-let s:CVSTMPstatusFile = '/.CVSfolderStatusTMP'
-let s:CVSstatusFile = '/.CVSfolderStatus'
-
 let s:CVSTMPstatusPath = $HOME.'/vimfiles/cvs'
 let s:CVSstatusPath = $HOME.'/vimfiles/cvs'
 
+"  ReturnCVSstatusFile ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Generates appropriate unique file names using the path of the dir.
+"     input  - [string] The full path of the directory that the file revised in.
+"              [string] The type of file we want to generate (Tmp or cvs).
+"    returns - [string] The name of the unique file name.
 function! ReturnCVSstatusFile(inputDir, type)
    if (a:type == 'cvs')
       let extension = '.vimcvs'
@@ -51,6 +50,11 @@ function! ReturnCVSstatusFile(inputDir, type)
    return s:CVSstatusPath.'/'.currentDir.extension
 endfunction
 
+"  CVSstatusFileExists ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Checks to see if cvs file for the corresponding directory exists.
+"     input   - [string] The directory to check for.
+"               [string] The type of file we want to check for (Tmp or cvs).
+"     returns - [bool] True if file exists, false otherwise.
 function! CVSstatusFileExists(inputDir, type)
    if (a:type == 'cvs')
       let extension = '.vimcvs'
@@ -68,6 +72,13 @@ function! CVSstatusFileExists(inputDir, type)
    endif
 endfunction
 
+"  CVSCheckForUpdates <><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Calls cvs throug the command line to check on the satus of the files
+"          in the current directory.
+"     input: [bool] True: runs completely in the background, but has to be
+"                   manually updated when complete. False: runs in the
+"                   foreground but will automagically update colors when done.
+"     returns: void
 function! CVSCheckForUpdates(background)
    if (&ft == 'netrw')
       exe "cd " . fnameescape(b:netrw_curdir)
@@ -83,6 +94,11 @@ function! CVSCheckForUpdates(background)
    endif
 endfunction
 
+"  UpdateCVSHilighting ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Checks a directory for any exsisting cvs files and updates the
+"          highlighting if possible.
+"     input   - void
+"     returns - void
 function! UpdateCVSHilighting()
    if (&ft == 'netrw')
       " Only works in netrw
@@ -174,14 +190,12 @@ function! UpdateCVSHilighting()
             " add it to the list.
             call CVSCheckForUpdates(1)
          endif
-         hi link uptodate     Identifier
-         hi link modified     PreProc
-         hi link modifiedDir  SpecialKey
-         hi link postDir      Identifier
-         hi link unknown      Comment
-         hi link conflict     ERROR
-         syn match cvsfolderstatus '\.CVSfolderStatus\(TMP\)\='
-         hi link cvsfolderstatus Ignore
+         hi uptodate    cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
+         hi modified    cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
+         hi modifiedDir cterm=NONE ctermbg=236 ctermfg=129 gui=NONE guibg=bg guifg=Purple
+         hi postDir     cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
+         hi unknown     cterm=NONE ctermbg=236 ctermfg=30 gui=NONE guibg=bg guifg=darkcyan
+         hi conflict    cterm=NONE ctermbg=196 ctermfg=231 gui=NONE guibg=red guifg=black
          if (getcwd() !~ 'C:\\$\|C:\/$')
             " Don't try to save a file to root
             if (dirModified || fileModified)
@@ -254,6 +268,11 @@ endfunction
    "endif
 "endfunction
 
+"  DiffWithCVS ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Fetches CVS's last checked in version of the current file and diffs
+"          it with the current file.
+"     input   - void
+"     returns - void
 function! DiffWithCVS()
    if (! &diff && winnr('$') == 1)
       set visualbell
@@ -277,6 +296,10 @@ function! DiffWithCVS()
    endif
 endfunction
 
+"  CommitWithCVS ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Askes for a commit messege and then commits the current file to CVS
+"     input   - void
+"     returns - void
 function! CommitWithCVS()
    if (&filetype == 'netrw')
       let file = expand('<cWORD>')
@@ -291,17 +314,29 @@ function! CommitWithCVS()
    endif
 endfunction
 
+"  AddWithCVS <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Adds file to current CVS repository.
+"     input   - void
+"     returns - void
 function! AddWithCVS()
    if (&filetype == 'netrw')
-      call CVSadd(expand('<cWORD>'))
+      let file = expand('<cWORD>')
+      call CVSadd(file)
       call CVSCheckForUpdates(0)
       call UpdateCVSHilighting()
+      " Position cursor back on file
+      exe "normal /" . file . "\rzz"
    else
       call CVSadd()
       call CVSCheckForUpdates(1)
    endif
 endfunction
 
+"  StartCheck <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: starts a check for hilighting when in netrw.
+"     inpput  - [bool](optional) If exists, will force update even if files
+"               already exist.
+"     returns - void
 function! StartCheck(...)
    if (&filetype == 'netrw')
       exe "cd " . fnameescape(b:netrw_curdir)

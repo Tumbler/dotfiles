@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/23/2016 02:24 PM
+" Last Edited: 12/13/2016 02:38 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -416,13 +416,11 @@ inoremap <S-Tab> <Esc>^<<a
 nnoremap Q <C-q>
 " Don't need Ex mode, but visual block mode is useful
 
-if exists('g:DVB_TrimWS')
-   vmap  <expr>  <LEFT>   DVB_Drag('left')
-   vmap  <expr>  <RIGHT>  DVB_Drag('right')
-   vmap  <expr>  <DOWN>   DVB_Drag('down')
-   vmap  <expr>  <UP>     DVB_Drag('up')
-   vmap  <expr>  D        DVB_Duplicate()
-endif
+vmap <expr> <LEFT>   exists('g:DVB_TrimWS')? DVB_Drag('left') : ''
+vmap <expr> <RIGHT>  exists('g:DVB_TrimWS')? DVB_Drag('right') : ''
+vmap <expr> <DOWN>   exists('g:DVB_TrimWS')? DVB_Drag('down') : ''
+vmap <expr> <UP>     exists('g:DVB_TrimWS')? DVB_Drag('up') : ''
+vmap <expr> D        exists('g:DVB_TrimWS')? DVB_Duplicate() : ''
 
 "< End of mappings
 
