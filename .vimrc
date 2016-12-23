@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/13/2016 02:38 PM
+" Last Edited: 12/23/2016 02:24 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -238,6 +238,9 @@ cnoremap <C-p> <C-r>"
 inoremap <C-p> <C-r>"
 " "Pastes" the current unnamed register
 
+vnoremap J j
+vnoremap K k
+
 " AutoComplete. (Activated with Ctrl+Space)
 inoremap <C-Space> <C-n>
 
@@ -410,6 +413,17 @@ inoremap <S-F12> <C-o>:call RemoveTrailingWhitespace() <BAR> retab<CR>
 inoremap <S-Tab> <Esc>^<<a
 " Makes Shift+Tab work like expected
 
+nnoremap Q <C-q>
+" Don't need Ex mode, but visual block mode is useful
+
+if exists('g:DVB_TrimWS')
+   vmap  <expr>  <LEFT>   DVB_Drag('left')
+   vmap  <expr>  <RIGHT>  DVB_Drag('right')
+   vmap  <expr>  <DOWN>   DVB_Drag('down')
+   vmap  <expr>  <UP>     DVB_Drag('up')
+   vmap  <expr>  D        DVB_Duplicate()
+endif
+
 "< End of mappings
 
 "> Autocommands
@@ -426,6 +440,9 @@ augroup Tumbler
    autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
    " When editing a file, always jump to the last cursor position.
 
+   autocmd BufReadPost * if (&filetype != 'qf') | call matchadd('ColorColumn', '\%81v.') | endif
+   " Highlight the 81st character on the line if it's not the quickfix.
+
    autocmd BufReadPre  * nmap<buffer>  <A-c>   I//<Esc>$<A-j>
    autocmd BufReadPre  * imap<buffer>  <A-c>   <Esc>I//<Esc>$<A-j>
    autocmd BufReadPre  * nmap<buffer>  <A-x>   ^2x$<A-j>
@@ -438,29 +455,36 @@ augroup Tumbler
                          "   the file is modifiable)
    " Filetype dependent stuff
    " Perl
-   autocmd FileType perl nmap<buffer>  <A-c>   I#<Esc>$<A-j>
-   autocmd FileType perl imap<buffer>  <A-c>   <Esc>I#<Esc>$<A-j>
-   autocmd FileType perl nmap<buffer>  <A-x>   ^x$<A-j>
-   autocmd FileType perl imap<buffer>  <A-x>   <Esc>^x$<A-j>
-                         " Perl style quick comments
+   autocmd FileType perl     nmap<buffer>  <A-c>   I#<Esc>$<A-j>
+   autocmd FileType perl     imap<buffer>  <A-c>   <Esc>I#<Esc>$<A-j>
+   autocmd FileType perl     nmap<buffer>  <A-x>   ^x$<A-j>
+   autocmd FileType perl     imap<buffer>  <A-x>   <Esc>^x$<A-j>
+                             " Perl style quick comments
    " HTML
-   autocmd FileType html nmap<buffer>  <A-c>   A--><Esc>I<!--<Esc>$<A-j>
-   autocmd FileType html imap<buffer>  <A-c>   <Esc>A--><Esc>I<!--<Esc>$<A-j>
-   autocmd FileType html nmap<buffer>  <A-x>   $xxx^xxxx$<A-j>
-   autocmd FileType html imap<buffer>  <A-x>   <Esc>$xxx^xxxx$<A-j>
-                         " HTML style quick comments
+   autocmd FileType html     nmap<buffer>  <A-c>   A--><Esc>I<!--<Esc>$<A-j>
+   autocmd FileType html     imap<buffer>  <A-c>   <Esc>A--><Esc>I<!--<Esc>$<A-j>
+   autocmd FileType html     nmap<buffer>  <A-x>   $xxx^xxxx$<A-j>
+   autocmd FileType html     imap<buffer>  <A-x>   <Esc>$xxx^xxxx$<A-j>
+                             " HTML style quick comments
    " Assembly
-   autocmd FileType asm  nmap<buffer>  <A-c>   I;<Esc>$<A-j>
-   autocmd FileType asm  imap<buffer>  <A-c>   <Esc>I;<Esc>$<A-j>
-   autocmd FileType asm  nmap<buffer>  <A-x>   ^x$<A-j>
-   autocmd FileType asm  imap<buffer>  <A-x>   <Esc>^x$<A-j>
-                         " Assembly style quick comments
+   autocmd FileType asm      nmap<buffer>  <A-c>   I;<Esc>$<A-j>
+   autocmd FileType asm      imap<buffer>  <A-c>   <Esc>I;<Esc>$<A-j>
+   autocmd FileType asm      nmap<buffer>  <A-x>   ^x$<A-j>
+   autocmd FileType asm      imap<buffer>  <A-x>   <Esc>^x$<A-j>
+                             " Assembly style quick comments
+   " Batch
+   autocmd FileType dosbatch nmap<buffer> <A-c>    I::<Esc>$<A-j>
+   autocmd FileType dosbatch imap<buffer> <A-c>    <Esc>I::<Esc>$<A-j>
+   autocmd FileType dosbatch nmap<buffer> <A-x>    ^2x$<A-j>
+   autocmd FileType dosbatch imap<buffer> <A-x>    <Esc>^2x$<A-j>
+                             " Batch stype quick comments (May God have mercy on your soul)
+
    " And of course we can't forget Vim files! :D
-   autocmd FileType vim  nmap<buffer>  <A-c>   I"<Esc>$<A-j>
-   autocmd FileType vim  imap<buffer>  <A-c>   <Esc>I"<Esc>$<A-j>
-   autocmd FileType vim  nmap<buffer>  <A-x>   ^x$<A-j>
-   autocmd FileType vim  imap<buffer>  <A-x>   <Esc>^x$<A-j>
-                         " Vim style quick comments
+   autocmd FileType vim      nmap<buffer>  <A-c>   I"<Esc>$<A-j>
+   autocmd FileType vim      imap<buffer>  <A-c>   <Esc>I"<Esc>$<A-j>
+   autocmd FileType vim      nmap<buffer>  <A-x>   ^x$<A-j>
+   autocmd FileType vim      imap<buffer>  <A-x>   <Esc>^x$<A-j>
+                             " Vim style quick comments
 
    autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
    " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
@@ -813,7 +837,7 @@ endfunction
 function! ReplaceBadWhitespaceInDir()
    echohl ERROR
    call inputsave()
-   let choice = input("Replacing whitespace. This CANNOT be undone. Continue? (y/n) ")
+   let choice = input("Replacing all whitespace in directory. This CANNOT be undone. Continue? (y/n) ")
    call inputrestore()
    echohl NONE
 
