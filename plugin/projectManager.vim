@@ -1026,6 +1026,8 @@ function! TraverseCtag(...)
             exe "setlocal tags=" . b:ProjectRoot . "/tags"
          endif
       endif
+      let initialWinNum = winnr("$")
+      let initialTabNum = tabpagenr()
       " This is <A-q>
       normal ñ
       let l:windowNr = winnr("$")
@@ -1058,6 +1060,14 @@ function! TraverseCtag(...)
          "   Quit superfluous buffer
          quit
       endif
+   catch /^Vim\%((\a\+)\)\=:E426/
+      "Tag not found
+      if (tabpagenr() != initialTabNum)
+         tabclose
+      elseif (winnr("$") > initialWinNum)
+         quit
+      endif
+      call EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=.*$'))
    endtry
 endfunction
 
@@ -1094,9 +1104,6 @@ function! ReturnTagFile(tag)
       let tagString = matchstr(tagString, '[^/\\]*$')
       return tagString
    catch /^Vim\%((\a\+)\)\=:E426/
-      echohl ERROR
-      echo "Tag not found!"
-      echohl NORMAL
       return ""
    endtry
 endfunction
