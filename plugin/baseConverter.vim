@@ -1,7 +1,7 @@
 " @Tracked
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/13/2016 03:00 PM
+" Last Edited: 01/10/2017 05:07 PM
 " Version: 1.2
 
 let g:vimBaseConversion = 1
@@ -44,13 +44,16 @@ function! CheckConversions()
          call ListConversions(base, rawNumber, beginingColumn, wordBeforeCursor)
       endif
    else
+      " This section was not very useful and has some annoying bugs, so I'm
+      " disabling it for now.
+
       " Some of the number resides after the cursor... completing not possible
-      let wholeWordUnderCursor = (wordBeforeCursor.wordAfterCursor)
-      if (wholeWordUnderCursor =~ '[0-9a-fx]\+\.\=\x\+')
-         let base = FindBase(wholeWordUnderCursor)
-         let rawNumber = StripLeader(wholeWordUnderCursor, base)
-         call HexConverter(wordBeforeCursor.wordAfterCursor, 1)
-      endif
+      "let wholeWordUnderCursor = (wordBeforeCursor.wordAfterCursor)
+      "if (wholeWordUnderCursor =~ '[0-9a-fx]\+\.\=\x\+')
+         "let base = FindBase(wholeWordUnderCursor)
+         "let rawNumber = StripLeader(wholeWordUnderCursor, base)
+         "call HexConverter(wordBeforeCursor.wordAfterCursor, 1)
+      "endif
    endif
 endfunction
 
