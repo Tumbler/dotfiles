@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/13/2016 02:38 PM
+" Last Edited: 01/10/2017 11:40 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -727,7 +727,7 @@ function! Javadoc()
    " First pass: count parameters and find longest one (so we can align
    "   everything to that one).
    while (1)
-      call add(type,  Chomp(lineToProcess, '\s*\zs\w\+\>'))
+      call add(type,  Chomp(lineToProcess, '\s*\zs\w\+\>\( \=\*\)\='))
       call add(param, Chomp(lineToProcess, '\s*\zs\w\+\>'))
       if (type[numberOfParams] == '' || param[numberOfParams] == '')
          break
@@ -755,7 +755,7 @@ endfunction
 "    input - stringAsList [[String]] A length one list that contains a String
 "               to macth against
 "            pattern [string] A regex string to match
-"    returns
+"    returns - The match from the pattern
 function! Chomp(stringAsList, pattern)
    let retVal = matchstr(a:stringAsList[0], a:pattern)
    call add(a:stringAsList, matchstr(a:stringAsList[0], retVal.'\zs.*'))
