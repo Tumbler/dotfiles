@@ -7,6 +7,9 @@
 "   not work without it! You can find it here:
 "   http://www.vim.org/scripts/script.php?script_id=58
 
+" TODO: Git has trouble with some of the special characters I have in here. I
+" need to see if I can get rid of all them.(i.e. turn ^M into <CR> or something)
+
 let g:cvsnetrwIntegration = 1
 
 if !isdirectory($HOME.'/vimfiles/cvs')
@@ -289,7 +292,11 @@ function! DiffWithCVS()
       endif
       set scrolloff=9999
 
-      exe "au FileChangedShell <buffer=".bufnr('#')."> echom \"Repository's version on left, your version on right\""
+      if (winnr('$') != 1)
+         " If there was a problem with CVSdiff() (Such as the file being a new
+         " entry) then a new window will not have opened.
+         exe "au FileChangedShell <buffer=".bufnr('#')."> echom \"Repository's version on left, your version on right\""
+      endif
       set novisualbell
    else
       call EchoError("Please close diff or other window first!")
