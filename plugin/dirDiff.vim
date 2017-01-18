@@ -1,11 +1,10 @@
 " @Tracked
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/13/2016 03:01 PM
-" Version: 1.3
+" Last Edited: 01/17/2017 05:55 PM
+" Version: 1.4
 
 "TODO: Add Directory checking, (It's a lot, but it's worth it)
-"TODO: Make colors absolute
 
 " DirDiff
 "  brief: Diffs two directories and allows you to quickly jump between different
@@ -210,7 +209,7 @@ function! SortDiffDir()
             call writefile(t:firstHeader + t:firstSorted, t:DiffDirFiles[2])
             call writefile(t:secondHeader + t:secondSorted, t:DiffDirFiles[3])
          endif
-         normal h
+         exe "normal! \<C-W>h"
          exe 'edit! ' . t:DiffDirFiles[2]
          let w:browseBuff = bufnr('%')
          call HighlightDir()
@@ -224,7 +223,7 @@ function! SortDiffDir()
             noremap <buffer> - <NOP>
             let b:dirBinds = 1
          endif
-         normal w
+         exe "normal! \<C-W>w"
          exe 'edit! ' . t:DiffDirFiles[3]
          let w:browseBuff = bufnr('%')
          call HighlightDir()
@@ -240,7 +239,7 @@ function! SortDiffDir()
             let b:dirBinds = 1
          endif
          if (initialWin == 1)
-            normal h
+            exe "normal! \<C-W>h"
          endif
       elseif (t:sortOrder == 1)
          let t:firstSorted = t:firstDirFiles
@@ -251,7 +250,7 @@ function! SortDiffDir()
             call writefile(t:firstHeader + t:firstSorted, t:DiffDirFiles[4])
             call writefile(t:secondHeader + t:secondSorted, t:DiffDirFiles[5])
          endif
-         normal h
+         exe "normal! \<C-W>h"
          exe 'edit! ' . t:DiffDirFiles[4]
          let w:browseBuff = bufnr('%')
          call HighlightDir()
@@ -264,7 +263,7 @@ function! SortDiffDir()
             noremap <buffer> <CR> :call DiffCurrentFile(t:firstDir . t:firstSorted[t:firstIndex], t:secondDir . t:secondSorted[t:secondIndex])<CR>
             noremap <buffer> - <NOP>
          endif
-         normal w
+         exe "normal! \<C-W>w"
          exe 'edit! ' . t:DiffDirFiles[5]
          let w:browseBuff = bufnr('%')
          call HighlightDir()
@@ -280,22 +279,22 @@ function! SortDiffDir()
             let b:dirBinds = 1
          endif
          if (initialWin == 1)
-            normal h
+            exe "normal! \<C-W>h"
          endif
          let t:sortOrder = 2
       elseif (t:sortOrder == 2)
          let t:firstSorted = t:Common + t:firstUnique
          let t:secondSorted = t:Common + t:secondUnique
-         normal h
+         exe "normal! \<C-W>h"
          exe 'edit! ' . t:DiffDirFiles[0]
          let w:browseBuff = bufnr('%')
          call HighlightDir()
-         normal w
+         exe "normal! \<C-W>w"
          exe 'edit! ' . t:DiffDirFiles[1]
          let w:browseBuff = bufnr('%')
          call HighlightDir()
          if (initialWin == 1)
-            normal h
+            exe "normal! \<C-W>h"
          endif
          let t:sortOrder = 0
       endif
@@ -369,12 +368,12 @@ function! DiffCurrentFile(firstFile, secondFile)
       diffthis
       noremap <buffer> - :call BackoutOfDIff()<CR>
       if (winnr() == 1)
-         normal l
+         exe "normal! \<C-W>l"
          normal gg
          set noscrollbind
          exe 'edit! ' a:secondFile
       else
-         normal h
+         exe "normal! \<C-W>h"
          normal gg
          set noscrollbind
          exe 'edit! ' a:firstFile
@@ -382,7 +381,7 @@ function! DiffCurrentFile(firstFile, secondFile)
       set modifiable
       diffthis
       noremap <buffer> - :call BackoutOfDIff()<CR>
-      normal w
+      exe "normal! \<C-W>w"
       set visualbell
       normal gg]c[c
       set novisualbell
@@ -397,9 +396,9 @@ function! BackoutOfDIff()
    if exists('t:DIFFDIR')
       " Only works in a DiffDir tab
       let l:mod = &mod
-      normal w
+      exe "normal! \<C-W>w"
       let l:mod = &mod || l:mod
-      normal w
+      exe "normal! \<C-W>w"
 
       if (l:mod)
          call EchoError('Please save file first!')
@@ -407,13 +406,13 @@ function! BackoutOfDIff()
          diffoff!
          exe 'b ' . w:browseBuff
          call HighlightDir()
-         normal w
+         exe "normal! \<C-W>w"
          exe 'b ' . w:browseBuff
          call HighlightDir()
          " Have to get both on the dirDiff screen before we can scrollbind
          set scrollbind
          set nomodifiable
-         normal w
+         exe "normal! \<C-W>w"
          set scrollbind
          set nomodifiable
          if (winnr() == 1)

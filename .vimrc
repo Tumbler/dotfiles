@@ -241,6 +241,7 @@ inoremap <C-p> <C-r>"
 vnoremap J j
 vnoremap K k
 
+nnoremap <silent><A-J> :call ParagraphToEightyChars()<CR>
 " AutoComplete. (Activated with Ctrl+Space)
 inoremap <C-Space> <C-n>
 
@@ -320,6 +321,9 @@ nnoremap ]q :call BringUpSpellSuggestionList()<CR>z=
 nnoremap [q :call BringUpSpellSuggestionList()<CR>z=
 " Pulls up a list of suggestions for word under cursor (If you've been cycling
 "   it will revert word back to original first).
+nnoremap ][ ]]
+nnoremap ]] ][
+" This just makes more sense to my brain.
 nnoremap <A-=>   :call BlockAutoIndent()<CR>
 inoremap <A-=>   <C-o>:call BlockAutoIndent()<CR>
 " Auto indents current block {}
@@ -533,14 +537,14 @@ function! BlockCheck(insertMode)
    endif
 
    if (b:checkingBlock == 0)
-      normal ms][md%mfzz
+      normal! ms][md%mfzz
       let b:checkingBlock = 1
       let b:insertCheckOn = a:insertMode
    else
       if ((line('.') >= line("'f")-1) && (line('.') <= line("'d'")))
          normal `s
          if (b:insertCheckOn == 1)
-            normal l
+            normal! l
             startinsert
             " If we started in insert mode, go back to insert mode
          endif
@@ -858,6 +862,21 @@ function! OpenNewTabWithNetrw()
    if exists('g:cvsnetrwIntegration')
       call UpdateCVSHilighting()
    endif
+endfunction
+
+"  ParagraphToEightyChars <><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: If the current line is > 80 chars then it will split thie line on
+"          whitespace and then join the next line. It will keep doing this until
+"          it finds a line that is less than 80 chars long.
+function! ParagraphToEightyChars()
+   while (len(getline(".")) > 80)
+      normal! 0
+      call search('\(\%81v.*\)\@<!\s\(.*\s.\{-}\%81v\)\@!', 'c', line('.'))
+      normal! r
+      if (getline(line('.')+1) != '')
+         normal! J
+      endif
+   endwhile
 endfunction
 "<
 

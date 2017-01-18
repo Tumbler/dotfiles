@@ -1,8 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/19/2016 10:44 AM
-" Version: 1.5
+" Last Edited: 01/17/2017 05:57 PM
+" Version: 1.6
 
 let g:vimProjectManager = 1
 
@@ -1038,7 +1038,7 @@ function! TraverseCtag(...)
          wincmd l
          exec "tag " . tag
       elseif (&mod == 0 || expand('%') == tagFile)
-         normal! 
+         exe "normal! \<C-]>"
       else
          tab split
          exec "tag " . tag

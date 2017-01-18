@@ -1,14 +1,11 @@
 "@Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 12/16/2016 01:13 PM
-" Version: 2.1
+" Version: 2.2
 
 " Note: This plugin is merely an extension to the "cvsmenu" plugin. It will
 "   not work without it! You can find it here:
 "   http://www.vim.org/scripts/script.php?script_id=58
-
-" TODO: Git has trouble with some of the special characters I have in here. I
-" need to see if I can get rid of all them.(i.e. turn ^M into <CR> or something)
 
 let g:cvsnetrwIntegration = 1
 
@@ -280,15 +277,15 @@ function! DiffWithCVS()
    if (! &diff && winnr('$') == 1)
       set visualbell
       if (&filetype == 'netrw')
-         normal 
+         exe "normal \<CR>"
          lclose
          cclose
          call CVSdiff()
-         normal L
+         exe "normal! \<C-W>L"
          normal gg]c[c
       else
          call CVSdiff()
-         normal L
+         exe "normal! \<C-W>L"
       endif
       set scrolloff=9999
 
