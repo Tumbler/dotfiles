@@ -1,8 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 01/17/2017 05:57 PM
-" Version: 1.6
+" Last Edited: 01/25/2017 09:44 AM
+" Version: 1.7
 
 let g:vimProjectManager = 1
 
@@ -66,13 +66,13 @@ function! ReturnProject(input)
          " If only one project is found, return it.
          let key = keys(projectList)[0]
          let s:activeProject = key
-         return [g:ProjectManager[key], g:ProjectManager[key][0]]
+         return [g:ProjectManager[key], g:ProjectManager[key]["dirs"][0]]
       elseif len(projectList) > 1
          " If more than one is found, return the active project
 
          for project in keys(projectList)
             if (project == s:activeProject)
-               return [g:ProjectManager[project], g:ProjectManager[project][0]]
+               return [g:ProjectManager[project], g:ProjectManager[project]["dirs"][0]]
             endif
          endfor
          " We have > 1 matches, but none of them are the current active
@@ -80,7 +80,7 @@ function! ReturnProject(input)
          let project = keys(projectList)[0]
          echo "Found multiple projects that match. Using " . project . "."
          let s:activeProject = project
-         return [g:ProjectManager[project], g:ProjectManager[project][0]]
+         return [g:ProjectManager[project], g:ProjectManager[project]["dirs"][0]]
       endif
    endif
    " If everything else fails, try to match a relative project
