@@ -1,7 +1,7 @@
 " @Tracked
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 01/10/2017 05:07 PM
+" Last Edited: 02/03/2017 03:07 PM
 " Version: 1.2
 
 let g:vimBaseConversion = 1
@@ -13,7 +13,7 @@ command! -nargs=+ Base2Base echo BaseConversion(<f-args>)
 command! ASCII call PrintASCIIChart()
 " Prints out a staic table for quick number to ASCII conversions
 
-nnoremap <A-f> :call HexConverter(expand('<cWORD>'))<CR>
+nnoremap <A-f> :call HexConverter(expand('<cword>'))<CR>
 " Brings up the hex converter on number under cursor
 
 if has("autocmd")
@@ -23,19 +23,19 @@ augroup BaseConversion
 augroup END
 endif
 
-" CheckConversions
+" CheckConversions ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Takes word under cursor and determines if it's a number. If it is it
-"            will pull up a conversion list, either in the completion list or in
-"            a command line print out. (This function is called automatically
-"            from a CursorMovedI event)
+"         will pull up a conversion list, either in the completion list or in
+"         a command line print out. (This function is called automatically
+"         from a CursorMovedI event)
 "    input   - void
 "    returns - void
 function! CheckConversions()
-
    let column = col('.')
-   let wordBeforeCursor = substitute(getline('.'), '\c.\{-}\(\<[0-9a-fx]\+\.\=\x\+\)\%'.column.'c.*', '\1', '')
-   let wordAfterCursor = substitute(getline('.'), '\c.\{-}\%'.column.'c\([0-9a-fx]\+\.\=\x\+\).*', '\1', '')
-   if (strlen(wordAfterCursor) == strlen(getline('.')))
+   let wordBeforeCursor = matchstr(getline('.'), '\c\<[0-9a-fx]\+\.\=\x\+\%'.column.'c')
+   let wordAfterCursor = matchstr(getline('.'), '\c\%'.(column-1).'c[0-9a-fx]\+\.\=\x\+')
+   if (strlen(wordAfterCursor) == 0)
+      " None of the word is after the cursor
       let base = FindBase(wordBeforeCursor)
       let rawNumber = StripLeader(wordBeforeCursor, base)
       let beginingColumn = col('.') - strlen(wordBeforeCursor)
@@ -57,7 +57,7 @@ function! CheckConversions()
    endif
 endfunction
 
-" ListConversions
+" ListConversions <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Calls up a completion popup with conversion suggestions.
 "    input   - base: [int] base The base that the original number is in
 "              rawNumber: [int] The number that needs to be converted
@@ -77,7 +77,7 @@ function! ListConversions(base, rawNumber, column, origWord)
         \ {'word':nr2char(BaseConversion(a:rawNumber, a:base, 10, 1)), 'menu': ' ASCII'} : {}])
 endfunction
 
-" HexConverter
+" HexConverter ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Brings up a command line print out of conversion suggestions.
 "    input   - wordUnderCursor: [string] The number to try to convert
 "              optional: [bool] If present won't shift window
@@ -158,7 +158,7 @@ function! FindBase(number)
    endif
 endfunction
 
-" IsNumber
+" IsNumber ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Looks at all the digits of a given number and determines if it is a
 "            valid number for the given base.
 "    input   - number: [string] The number to check
@@ -174,7 +174,7 @@ function! IsNumber(number, base)
    return 1
 endfunction
 
-" BaseConversion
+" BaseConversion ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Convert any base [2-16] to any other base [2-16].
 "    input   - num: [string] A string containing the number to convert
 "              inbase: [int] The base of the number to convert
@@ -202,7 +202,7 @@ function! BaseConversion(num, inBase, outBase, ...)
    endif
 endfunction!
 
-" Decimal2Base
+" Decimal2Base ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Convert any decimal float to any base = [2-16]
 "   input   - number: [string] String representation of decimal float to convert
 "             base: [int] Desired base
@@ -226,7 +226,7 @@ function! Decimal2Base(number, base, decimalPrecision)
    endif
 endfunction
 
-" Base2Dec
+" Base2Dec ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Convert any base [2-16] to decimal.
 "    input   - number: [string] String representation of an int to convert
 "              base: [int] Base of input number
@@ -245,7 +245,7 @@ function! Base2Dec(number, base)
    return result
 endfunction
 
-" Dec2Base
+" Dec2Base ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Convert decimal integer to any base [2-16]
 "    input   - number: [string] String representation of a decimal number to
 "                      convert
@@ -268,7 +268,7 @@ function! Dec2Base(number, base)
    return toupper(result)
 endfunction
 
-" Frac2Base
+" Frac2Base <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Takes a decimal float less than one (a fraction) and converts it to a
 "            different base [2-16]
 "    input   - number: [string] String representation of a fraction (i.e. .25)
@@ -316,7 +316,7 @@ function! Frac2Base(number, base, precision)
    return result
 endfunction
 
-" Frac2Dec
+" Frac2Dec ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Takes a float less than one (a fraction) in any base [2-16] and
 "            converts it to a decimal fraction.
 "    intput  - number: [string] String representation of fraction (i.e. .25)
@@ -342,7 +342,7 @@ function! Frac2Dec(number, base)
    endif
 endfunction
 
-" StripLeader
+" StripLeader <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Takes a string representation of a number and removes any header that
 "            isn't a valid digit. (i.e. 0x for hex)
 "    input   - number: [string] String representation of the number to strip
@@ -362,8 +362,10 @@ function! StripLeader(number, base)
    endif
 endfunction
 
-" PrintASCIIChart
-"  brief: Prints a static chart of ASCII values so I can stop looking up
+" PrintASCIIChart <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"  brief: Prints a static chart of ASCII values so I can stop looking it up
+"    input   - void
+"    returns - void
 function! PrintASCIIChart()
    echo "| DEC HEX OCT CHR | DEC HEX OCT CHR | DEC HEX OCT CHR | \n"
    let start = 32
