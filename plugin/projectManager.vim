@@ -1,8 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 01/25/2017 09:44 AM
-" Version: 1.7
+" Last Edited: 02/03/2017 10:52 AM
+" Version: 1.8
 
 let g:vimProjectManager = 1
 
@@ -35,7 +35,7 @@ else
 endif
 " Brings up the Directory Search Prompt (See DirSearch)
 
-" ReturnProject
+" ReturnProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Returns the dirs in a project as list
 "     input   - input: [string] a project name or directory as a string
 "     returns - [[project{}, root]] a project is a structure defined as the following:
@@ -142,7 +142,7 @@ function! ReturnProject(input)
    return [{"type": '', "dirs":[], "name": ''}, '']
 endfunction
 
-" ReturnAbsoluteRoot()
+" ReturnAbsoluteRoot ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Finds out if the relative directory structure of the current project
 "         is valid for our cwd.
 "  returns: The absolute root path for valid, '' for invalid
@@ -202,7 +202,7 @@ function! ReturnAbsoluteRoot(project, match)
    endif
 endfunction
 
-" Project
+" Project <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: The "main function" of the project manager
 "     input   - void
 "     returns - void
@@ -251,7 +251,7 @@ function! Project()
    endwhile
 endfunction
 
-" ParseChoice
+" ParseChoice <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Finds commands or projects that user input matches. Exact matches will
 "            take precedence. If there are multiple partial matches, a list
 "            will be returned instead.
@@ -294,7 +294,7 @@ function! ParseChoice(choice, commandFlag)
    return l:matches
 endfunction
 
-" FillProject
+" FillProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Similar to ParseChoice, but only searches for projects and will
 "            return a match only if there is exactly one match
 "     input   - partialProject: [string] typically user input to try to match to
@@ -309,7 +309,7 @@ function! FillProject(partialProject)
    return project
 endfunction
 
-" ExecuteCommand
+" ExecuteCommand ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Executes any command from s:ProjectManagerCommands
 "     input   - command: [string] which command to execute
 "               options: [string[]] list of strings with additional, optional
@@ -719,7 +719,7 @@ function! ExecuteCommand(command, options)
    endif
 endfunction
 
-" GetProject
+" GetProject ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Asks for a project and then matches against known projects. If there
 "            is more than one match it will "beep" but remember the current
 "            input, allowing the user to add more input for clarification
@@ -743,7 +743,7 @@ function! GetProject()
    return project
 endfunction
 
-" AddDirectory
+" AddDirectory ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Adds dir to project. Properly handles "\"'s, pre-existence, and
 "            relative paths
 "     input   - project: [Dictionary] The dictionary to add the dir to
@@ -778,7 +778,7 @@ function! AddDirectory(project, dir, relative)
    return 0
 endfunction
 
-" PrintProject
+" PrintProject ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Prints out given project in a clean looking manner
 "     input - inputProject: [string] the project to print or the string "@||"
 "                           to print all projects
@@ -816,7 +816,7 @@ function! PrintProject(inputProject, option)
    echo "\n"
 endfunction
 
-" ClearScreen
+" ClearScreen <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Clears command line.
 "     input   - void
 "     returns - void
@@ -826,7 +826,7 @@ function! ClearScreen()
    let &ch=1
 endfunction
 
-" SaveProject
+" SaveProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Saves project information to s:projectFile
 "     input   - void
 "     returns - void
@@ -841,7 +841,7 @@ function! SaveProject()
    call writefile(l:mySaveList, s:projectFile)
 endfunction
 
-" LoadProject
+" LoadProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Loads project information stored at s:projectFile
 "     input   - void
 "     returns - void
@@ -875,12 +875,12 @@ function! LoadProject()
    endif
 endfunction
 
-" ExpandDir
+" ExpandDir <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Expands relative directories to absolute as well as takes out any
-"            Win-slashes.
+"         Win-slashes.
 "     input   - dir: [string] the directory to expand
 "     input   - trailingSlashFlag: [bool] returns a string with a trailing slash
-"                                     if true, without if false.
+"               if true, without if false.
 "     returns - dir: [string] the expanded directory
 function! ExpandDir(dir, trailingSlashFlag)
    let newDir = a:dir
@@ -894,10 +894,10 @@ function! ExpandDir(dir, trailingSlashFlag)
    return newDir
 endfunction
 
-" ProjectCompletion
+" ProjectCompletion <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: This is a custom completion function that will complete the list of
-"            commands, projects, or directories based on which argument the
-"            user is currently typing.
+"         commands, projects, or directories based on which argument the
+"         user is currently typing.
 "     input/returns - see :h command-completion-custom
 function! ProjectCompletion(arg, line, pos)
    let returnString = ""
@@ -939,14 +939,18 @@ function! ProjectCompletion(arg, line, pos)
    endif
 endfunction
 
-"  GetVimGrepFiles ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-function! GetVimGrepFiles(fileTypes)
+" GetVimGrepFiles <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Gets the current projects directories and formats them properly for
+"          a vimgrep.
+"     input   - void
+"     returns - [string] A string containing all properly formated directories
+"               from the current project.
+function! GetVimGrepFiles()
    let l:dirList = ReturnProject(getcwd())[0].dirs
-   let l:parsedFileTypes = ParseFileTypes(a:fileTypes)
    let l:myReturnString = ""
    if len(l:dirList) > 0
       for dir in l:dirList
-         let l:myReturnString .= " " . dir . "/" . l:parsedFileTypes
+         let l:myReturnString .= " " . dir . "/*"
       endfor
    else
       let l:myReturnString = './*'
@@ -954,24 +958,11 @@ function! GetVimGrepFiles(fileTypes)
    return l:myReturnString
 endfunction
 
-"  ParseFileTypes <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-function! ParseFileTypes(fileTypes)
-   if strlen(a:fileTypes) == 0
-      return "*"
-      " Defaults to all files not included in wildignore
-   else
-      let FileTypes = split(a:fileTypes, ',')
-      let filestring = ""
-      for i in  FileTypes
-         let filestring = filestring . "*." . i . ","
-      endfor
-      let num = strlen(filestring)
-      let filestring = strpart(filestring, 0, num-1)
-      return filestring
-   endif
-endfunction
-
-"  StartDirSearch <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" StartDirSearch ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: A wrapper to DirSearch. Prompts the user for input and then passes it
+"          to DirSearch.
+"     input   - void
+"     returns - void
 function! StartDirSearch()
    cclose
    call setqflist([])
@@ -988,32 +979,44 @@ endfunction
 "     returns - void
 function! DirSearch(input)
    if len(a:input)
-      let search = ""
-      let recurse = 0
-      if     (a:input =~# '\(\\\)\@<!\\r')
-         " Found "\r" in pattern, recurse this directory
-         let recurse = 1
-         let search = substitute(a:input, '\(\\\)\@<!\\r\c', "", "g")
-      elseif (a:input =~# '\(\\\)\@<!\\R')
-         " Found "\R" in pattern, recurse parent directory
-         exec "cd .."
-         let recurse = 1
-         let search = substitute(a:input, '\(\\\)\@<!\\R\c', "", "g")
-      else
-         let search = a:input
-      endif
-      if (recurse)
-         exec "lvimgrep /" . search . "/j ./**"
-      else
-         exec "lvimgrep /" . search . "/j " . GetVimGrepFiles("")
-      endif
-      lw
-      let @/ = search
-      exec feedkeys("\<CR>\<C-K>")
+      try
+         let search = ""
+         let recurse = 0
+         if     (a:input =~# '\(\\\)\@<!\\r')
+            " Found "\r" in pattern, recurse this directory
+            let recurse = 1
+            let search = substitute(a:input, '\(\\\)\@<!\\r\c', "", "g")
+         elseif (a:input =~# '\(\\\)\@<!\\R')
+            " Found "\R" in pattern, recurse parent directory
+            exec "cd .."
+            let recurse = 1
+            let search = substitute(a:input, '\(\\\)\@<!\\R\c', "", "g")
+         else
+            let search = a:input
+         endif
+         if (recurse)
+            exec "lvimgrep /" . search . "/j ./**"
+         else
+            exec "lvimgrep /" . search . "/j " . GetVimGrepFiles()
+         endif
+         lw
+         let @/ = search
+         exec feedkeys("\<CR>\<C-K>")
+      catch /^Vim\%((\a\+)\)\=:E480/
+         " E480: No match
+         " Not an error, but still need to inform the user that their search failed
+         call EchoError(matchstr(v:exception, 'No.*'))
+      endtry
    endif
 endfunction
 
-"  TraverseCtag <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" TraverseCtag ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Goes to tag under cursor but tries to intelligently open it in a new
+"          split or tab based on certain stimuli. Also tries to generate a tag
+"          file if there isn't one.
+"     input   - (optonal) If present, it will not try to generate a tag file and
+"               try again.
+"     returns - void
 function! TraverseCtag(...)
    try
       " If it's part of a project then look in the "root" directory of the
@@ -1071,25 +1074,30 @@ function! TraverseCtag(...)
    endtry
 endfunction
 
-"  GenerateCTags ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" GenerateCTags <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Generates a tag file for your whole project. This function assumes
+"          that you have Ctags installed.
+"          (Also adds a Microchip directory if it exists.)
+"     input   - void
+"     returns - void
 function! GenerateCTags()
    let currentwd = ExpandDir(getcwd(), 0)
    let dirs = ReturnProject(currentwd)[0].dirs
    let microchipDirectoryExist = 0
    if len(dirs) == 0
-      exe "silent!! ctags " . GetVimGrepFiles("")
+      exe "silent!! ctags " . GetVimGrepFiles()
    else
       if isdirectory(ExpandDir("..\Microchip", 0))
          let microchipDirectoryExist = 1
       endif
       if (ExpandDir(dirs[0], 0) == currentwd)
-         exe "silent!! ctags " . GetVimGrepFiles("")
+         exe "silent!! ctags " . GetVimGrepFiles()
          if (microchipDirectoryExist)
             exe "silent!! ctags -aR ../Microchip/*"
          endif
       else
          exe "cd " . ExpandDir(dirs[0], 0)
-         exe "! ctags " . GetVimGrepFiles("")
+         exe "! ctags " . GetVimGrepFiles()
          if (microchipDirectoryExist)
             exe "silent!! ctags -aR ../Microchip/*"
          endif
@@ -1098,6 +1106,12 @@ function! GenerateCTags()
    endif
 endfunction
 
+" ReturnTagFile <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Finds the file that a tag resides in. If there are more than one, it
+"            takes the first one.
+"     input   - tag: [string] What tag we're searching for
+"     returns - [string] The file that the tag resides in or empty if the tag
+"               doesn't exist
 function! ReturnTagFile(tag)
    try
       let tagString = split(execute("tselect ".a:tag), "\n")[1]
