@@ -29,7 +29,7 @@ command! CVSAdd    :call AddWithCVS()
 let s:CVSTMPstatusPath = $HOME.'/vimfiles/cvs'
 let s:CVSstatusPath = $HOME.'/vimfiles/cvs'
 
-"  ReturnCVSstatusFile ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" ReturnCVSstatusFile <><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Generates appropriate unique file names using the path of the dir.
 "     input  - [string] The full path of the directory that the file revised in.
 "              [string] The type of file we want to generate (Tmp or cvs).
@@ -50,7 +50,7 @@ function! ReturnCVSstatusFile(inputDir, type)
    return s:CVSstatusPath.'/'.currentDir.extension
 endfunction
 
-"  CVSstatusFileExists ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" CVSstatusFileExists <><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Checks to see if cvs file for the corresponding directory exists.
 "     input   - [string] The directory to check for.
 "               [string] The type of file we want to check for (Tmp or cvs).
@@ -72,7 +72,7 @@ function! CVSstatusFileExists(inputDir, type)
    endif
 endfunction
 
-"  CVSCheckForUpdates <><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" CVSCheckForUpdates ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Calls cvs throug the command line to check on the satus of the files
 "          in the current directory.
 "     input: [bool] True: runs completely in the background, but has to be
@@ -94,7 +94,7 @@ function! CVSCheckForUpdates(background)
    endif
 endfunction
 
-"  UpdateCVSHilighting ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" UpdateCVSHilighting <><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Checks a directory for any exsisting cvs files and updates the
 "          highlighting if possible.
 "     input   - void
@@ -188,7 +188,7 @@ function! UpdateCVSHilighting()
          else
             " If the folder isn't tracked but has a CVS directory in it then
             " add it to the list.
-            call CVSCheckForUpdates(1)
+            "call CVSCheckForUpdates(1)
          endif
          hi uptodate    cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
          hi modified    cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
@@ -268,7 +268,7 @@ endfunction
    "endif
 "endfunction
 
-"  DiffWithCVS ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" DiffWithCVS <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Fetches CVS's last checked in version of the current file and diffs
 "          it with the current file.
 "     input   - void
@@ -300,7 +300,7 @@ function! DiffWithCVS()
    endif
 endfunction
 
-"  CommitWithCVS ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" CommitWithCVS <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Askes for a commit messege and then commits the current file to CVS
 "     input   - void
 "     returns - void
@@ -318,7 +318,7 @@ function! CommitWithCVS()
    endif
 endfunction
 
-"  AddWithCVS <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" AddWithCVS ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Adds file to current CVS repository.
 "     input   - void
 "     returns - void
@@ -336,9 +336,9 @@ function! AddWithCVS()
    endif
 endfunction
 
-"  StartCheck <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" StartCheck ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: starts a check for hilighting when in netrw.
-"     inpput  - [bool](optional) If exists, will force update even if files
+"     input   - [bool](optional) If exists, will force update even if files
 "               already exist.
 "     returns - void
 function! StartCheck(...)
