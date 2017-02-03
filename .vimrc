@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 01/10/2017 11:40 AM
+" Last Edited: 02/03/2017 03:10 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -401,10 +401,10 @@ inoremap <silent><F4>  <C-o>:let b:lastSearch = @/<CR>ma/{<CR>%y'a:let @/ = b:la
 nnoremap <silent><F5>  :noh<CR>
 inoremap <silent><F5>  <C-o>:noh<CR>
 " Clears all highlighting
-map      <F6>    "qyiwO<Esc>0D<A-c>k0"wy$:exe "normal ".(4-strlen(@w))."A "<CR>$38a<><Esc>0lllR<C-r>q <Esc>0lll
+nmap <F6> "ayiwmaO<Esc>0D<A-c>k0"wy$0D40i<><Esc>0R<C-r>w <C-r>a <Esc>`a
 " Adds Tevis style documentation for functions
 " (Place cursor on function name and press F6)
-map      <S-F6>    :call Javadoc()<Esc>
+nnoremap <S-F6>  :call Javadoc()<Esc>
 " Adds Javadoc
 nnoremap <F7>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 inoremap <F7>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
@@ -426,6 +426,9 @@ vmap <expr> <DOWN>   exists('g:DVB_TrimWS')? DVB_Drag('down') : ''
 vmap <expr> <UP>     exists('g:DVB_TrimWS')? DVB_Drag('up') : ''
 vmap <expr> D        exists('g:DVB_TrimWS')? DVB_Duplicate() : ''
 
+cnoremap %% %:p:h:t/%
+" Creates a generalized previous directory as well as file on the command line.
+
 "< End of mappings
 
 "> Autocommands
@@ -442,8 +445,11 @@ augroup Tumbler
    autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
    " When editing a file, always jump to the last cursor position.
 
-   autocmd BufReadPost * if (&filetype != 'qf') | call matchadd('ColorColumn', '\%81v.') | endif
+   autocmd BufReadPost * if (&filetype != 'qf') | let b:ColorColumnID = matchadd('ColorColumn', '\%81v.') | endif
    " Highlight the 81st character on the line if it's not the quickfix.
+   autocmd FilterWritePost * if (&diff && exists('b:ColorColumnID')) | call matchdelete(b:ColorColumnID) | unlet b:ColorColumnID |endif
+   " When diffing take out the coloring because it looks like diff highlighting.
+   " ^^ TODO: This still has issues sometimes. I'll get a MCVE next time I encounter it....
 
    autocmd BufReadPre  * nmap<buffer>  <A-c>   I//<Esc>$<A-j>
    autocmd BufReadPre  * imap<buffer>  <A-c>   <Esc>I//<Esc>$<A-j>
