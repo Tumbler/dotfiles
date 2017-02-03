@@ -6,7 +6,7 @@
 
 "TODO: Add Directory checking, (It's a lot, but it's worth it)
 
-" DirDiff
+" DirDiff <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Diffs two directories and allows you to quickly jump between different
 "          files in the dirs.
 "     input - a:1 [bool] When present opens diff with first dir on left.
@@ -68,6 +68,7 @@ function! DirDiff(...)
    endif
 endfunction
 
+" SetupDirDiffTab <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 function! SetupDirDiffTab(firstDir, secondDir)
    tabnew
    call SetTabName('Dir Diff')
@@ -189,7 +190,7 @@ function! SetupDirDiffTab(firstDir, secondDir)
    set scrolloff=9999
 endfunction
 
-"  SortDiffDir
+" SortDiffDir <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Sorts the files in the DiffDir in the following ways:
 "        1: All Common files followed by all Unique files (default)
 "        2: CommonDiff files, CommonSame files, Unique files
@@ -301,7 +302,7 @@ function! SortDiffDir()
    endif
 endfunction!
 
-" HighlightDir
+" HighlightDir ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Hilights file names in buffer based on window variables
 "    input   - void OR
 "              [string[]] A list of files to highlight green  (Identical)
@@ -349,7 +350,7 @@ function! HighlightDir(...)
    endif
 endfunction
 
-" DiffCurrentFile
+" DiffCurrentFile <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Diffs the two files passed in
 "    input   - [string] The first file in the diff
 "              [string] The second file in the diff
@@ -388,7 +389,7 @@ function! DiffCurrentFile(firstFile, secondFile)
    endif
 endfunction
 
-" BackoutOfDIff
+" BackoutOfDIff <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: returns to DirDiff screen when in a diff
 "    input   - void
 "    return  - void
@@ -429,7 +430,7 @@ function! BackoutOfDIff()
    endif
 endfunction
 
-"  SetTabName <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" SetTabName ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Sets current tab name and updates all tabs
 function! SetTabName(...)
    if (a:0 > 0)
@@ -440,7 +441,7 @@ function! SetTabName(...)
    endif
 endfunction
 
-"  EscapeRegex ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" EscapeRegex <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Backslash escapes the characters for a "magic mode" regex. Returns
 "          escaped string.
 function! EscapeRegex(input)
