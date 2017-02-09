@@ -44,16 +44,11 @@ function! CheckConversions()
          call ListConversions(base, rawNumber, beginingColumn, wordBeforeCursor)
       endif
    else
-      " This section was not very useful and has some annoying bugs, so I'm
-      " disabling it for now.
-
       " Some of the number resides after the cursor... completing not possible
-      "let wholeWordUnderCursor = (wordBeforeCursor.wordAfterCursor)
-      "if (wholeWordUnderCursor =~ '[0-9a-fx]\+\.\=\x\+')
-         "let base = FindBase(wholeWordUnderCursor)
-         "let rawNumber = StripLeader(wholeWordUnderCursor, base)
-         "call HexConverter(wordBeforeCursor.wordAfterCursor, 1)
-      "endif
+
+      " This section used to pull up the conversions in a command line print
+      " out as you typed, but it wasn't very useful and had some annoying bugs,
+      " so I've removed it for now.
    endif
 endfunction
 
