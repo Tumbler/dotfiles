@@ -1,7 +1,7 @@
 " @Tracked
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 02/03/2017 03:07 PM
+" Last Edited: 02/10/2017 01:19 PM
 " Version: 1.2
 
 let g:vimBaseConversion = 1
@@ -135,7 +135,7 @@ endfunction
 
 " FindeBase ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Does it's best to guess the base of the number.
-"    input   - number: [string] The number from which to determin the base
+"    input   - number: [string] The number from which to determine the base
 "    returns - [int] The base number (2 for binary, 10 for decimal, etc...)
 function! FindBase(number)
    if     (a:number[0:1] == '0b' && IsNumber(a:number[2:], 2))
@@ -159,14 +159,9 @@ endfunction
 "    input   - number: [string] The number to check
 "              base: [int] The base to check for
 "    returns - [bool] True if valid, false if invalid
+let s:digitList = {2: '[01.]', 8: '[0-7.]', 10: '[0-9.]', 16: '[0-9a-f.]'}
 function! IsNumber(number, base)
-   let digitList = {2: '[01.]', 8: '[0-7.]', 10: '[0-9.]', 16: '[0-9a-f.]'}
-   for char in split(a:number, '\zs')
-      if char !~ digitList[a:base]
-         return 0
-      endif
-   endfor
-   return 1
+   return (a:number =~ '^'.s:digitList[a:base].'\+$')
 endfunction
 
 " BaseConversion ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -175,7 +170,8 @@ endfunction
 "              inbase: [int] The base of the number to convert
 "              outbase: [int] The desired base
 "              optional: [bool] Whether or not to prepend a base leader (i.e. 0x)
-"    returns - void
+"    returns - [string] The input number converted to the base specified
+let s:prefixes = {2: '0b', 8: '0', 10: '', 16: '0x'}
 function! BaseConversion(num, inBase, outBase, ...)
    let splitNum = split(a:num, '\.')
    let decNum = Base2Dec(splitNum[0], a:inBase)
@@ -184,17 +180,8 @@ function! BaseConversion(num, inBase, outBase, ...)
       let decNum .= '.'.Frac2Dec(splitNum[1], a:inBase)
       let decimalPrecision = len(splitNum[1])
    endif
-   if     (a:outBase == 2)
-      return (a:0)?"0b".Decimal2Base(decNum, 2, decimalPrecision):Decimal2Base(decNum, 2, decimalPrecision)
-   elseif (a:outBase == 8)
-      return (a:0)?"0" .Decimal2Base(decNum, 8, decimalPrecision):Decimal2Base(decNum, 8, decimalPrecision)
-   elseif (a:outBase == 10)
-      return Decimal2Base(decNum, 10, decimalPrecision)
-   elseif (a:outBase == 16)
-      return (a:0)?"0x".Decimal2Base(decNum, 16, decimalPrecision):Decimal2Base(decNum, 16, decimalPrecision)
-   else
-      return Decimal2Base(decNum, a:outBase, decimalPrecision)
-   endif
+   let prefix = get(s:prefixes, a:outBase, '')
+   return prefix . Decimal2Base(decNum, a:outBase, decimalPrecision)
 endfunction!
 
 " Decimal2Base ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -229,13 +216,13 @@ endfunction
 function! Base2Dec(number, base)
    let hexdig='0123456789abcdef'
    let result = 0
-   let pos = 0
-   let len = strlen(a:number)
-   while pos < len
-      let x = strpart(a:number, pos, 1)
-      let d = match(hexdig, x.'\c')
-      let result = result * a:base + d
-      let pos = pos + 1
+   let position = 0
+   let length = strlen(a:number)
+   while position < length
+      let digitString = a:number[position]
+      let digitInt = match(hexdig, digitString.'\c')
+      let result = result * a:base + digitInt
+      let position += 1
    endwhile
    return result
 endfunction
@@ -289,7 +276,7 @@ function! Frac2Base(number, base, precision)
       let digit = float2nr(multiplied)
       if (digit >= (a:base+1)/2)
          "Need to round
-         let index = match(hexdig, result[loopCounter])+1
+         let index = stridx(hexdig, result[loopCounter])+1
          let numOfTurnovers = 0
          let fullTurnover = 0
          while (index >= a:base)
@@ -299,7 +286,7 @@ function! Frac2Base(number, base, precision)
                let fullTurnover = 1
                break
             endif
-            let index = match(hexdig, result[loopCounter-numOfTurnovers])+1
+            let index = stridx(hexdig, result[loopCounter-numOfTurnovers])+1
          endwhile
          if (!fullTurnover)
             let result = result[:loopCounter-numOfTurnovers-1] . hexdig[index]
@@ -314,7 +301,7 @@ endfunction
 " Frac2Dec ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Takes a float less than one (a fraction) in any base [2-16] and
 "            converts it to a decimal fraction.
-"    intput  - number: [string] String representation of fraction (i.e. .25)
+"    input   - number: [string] String representation of fraction (i.e. .25)
 "              base: [int] Base of the input number [2-16]
 "    returns - [string] String representation of decimal fraction
 function! Frac2Dec(number, base)
