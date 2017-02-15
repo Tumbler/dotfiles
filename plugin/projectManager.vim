@@ -2,7 +2,7 @@
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 02/03/2017 10:52 AM
-" Version: 1.8
+" Version: 1.9
 
 let g:vimProjectManager = 1
 
