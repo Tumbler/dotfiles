@@ -1,12 +1,12 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 02/03/2017 03:10 PM
+" Last Edited: 02/15/2017 10:16 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
 "> Settings
 if (line('$') == 1 && getline(1) == '' && has("gui_running"))
-   set columns=80
+   set columns=84
    set lines=45
 endif
 " If we have a new window, give it a decent size
@@ -76,15 +76,15 @@ set undolevels=10000
 set sessionoptions=blank,buffers,curdir,folds,globals,localoptions,options,resize,slash,tabpages,winpos,winsize
 " Save ALL the things when saving sessions
 
-if has("gui_running") && has("autocmd")
-augroup Focus
-   au!
-   autocmd FocusGained * let @" = @+
-   autocmd FocusLost   * let @+ = @"
-augroup END
-else
-   set clipboard^=unnamed
-endif
+"if has("gui_running") && has("autocmd")
+"augroup Focus
+   "au!
+   "autocmd FocusGained * let @" = @+
+   "autocmd FocusLost   * let @+ = @"
+"augroup END
+"else
+   "set clipboard^=unnamed
+"endif
 " I often find myself wanting to copy between vims. The clipboard option
 "   works OK for this but wipes out the clipboard when you do basically
 "   anything and can get frustrating if you want to delete a line and
@@ -335,8 +335,8 @@ nnoremap <A-w>   :call ToggleReadOnlyBit()<CR>
 nnoremap <A-\>   :w<CR>:make<CR>
 inoremap <A-\>   <Esc>:w<CR>:make<CR>
 " Attempt a make
-nnoremap <A-]>   :w<CR>:!%<CR><CR>
-inoremap <A-]>   <Esc>:w<CR>:!%<CR><CR>
+nnoremap <A-[>   :w<CR>:!%<CR><CR>
+inoremap <A-[>   <Esc>:w<CR>:!%<CR><CR>
 " Attempt a make for a sripting language
 nnoremap <silent><A-o>   :call BlockCheck(0)<CR>
 inoremap <silent><A-o>   <Esc>:call BlockCheck(1)<CR>
@@ -349,6 +349,8 @@ nnoremap <A-B>   :call ToggleBinaryMode()<CR>
 inoremap <A-B>   <C-o>:call ToggleBinaryMode()<CR>
 " Open current file in binary mode
 nnoremap <silent><A-v> :call OpenVimrc()<CR>:silent! normal! zO<CR>
+" Opens vimrc (this file) in new tab
+nnoremap <silent><A-V> :call OpenVimrc(1)<CR>:silent! normal! zO<CR>
 " Opens vimrc (this file) in new tab
 nnoremap <A-r>   :call OpenVimrc()<CR>GzR
 " Opens vimrc (this file) in new tab and jumps to the regular expression section for quick reference.
@@ -364,8 +366,8 @@ nnoremap <A-z>   za
 " Toggles current fold (It doesn't seem like much of a shortcut but za is really hard to hit)
 
 " Vimgrep
-nnoremap <A-8>   wb"wyiw:lvimgrep /\<<C-r>w\>/j <C-r>=GetVimGrepFiles("") <CR> <CR>:lw<CR><C-W>j/\<<C-r>w\><CR>:cclose <BAR> call setqflist([])<CR>
-nnoremap g<A-8>  wb"wyiw:lvimgrep /<C-r>w/j <C-r>=GetVimGrepFiles("") <CR> <CR>:lw<CR><C-W>j/<C-r>w<CR>:cclose <BAR> call setqflist([])<CR>
+nnoremap <A-8>   :call ProjectVimGrep('\<'.expand('<cword>').'\>')<CR>
+nnoremap g<A-8>  :call ProjectVimGrep(expand('<cword>'))<CR>
 " * vimgrep: works like * but greps the current directory instead of just the file
 nnoremap <S-A-n>  :call NextQuickFix()<CR>
 nnoremap <S-A-p>  :call NextQuickFix(1)<CR>
@@ -409,7 +411,7 @@ nnoremap <S-F6>  :call Javadoc()<Esc>
 nnoremap <F7>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 inoremap <F7>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 " Reloads syntax file and vimrc
-nnoremap <F9>    :%MkVimball TumblerVimball<CR>
+nnoremap <F9>    :%MkVimball! TumblerVimball<CR>
 nnoremap <S-F12> :call RemoveTrailingWhitespace() <BAR> retab<CR>
 inoremap <S-F12> <C-o>:call RemoveTrailingWhitespace() <BAR> retab<CR>
 " Removes all trailing whitespace in file
@@ -612,13 +614,21 @@ function! SaveBuffer(source)
 endfunction
 
 "  OpenVimrc ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-function! OpenVimrc()
+function! OpenVimrc(...)
    " open in new tab unless current one is empty
    if line('$') == 1 && getline(1) == ''
-      exec 'e $MYVIMRC'
+      if (a:0 == 0)
+         exec 'e $MYVIMRC'
+      else
+         exec 'e $HOME/vimfiles/.vimpref'
+      endif
    else
       exec 'tabnew'
-      exec 'e $MYVIMRC'
+      if (a:0 == 0)
+         exec 'e $MYVIMRC'
+      else
+         exec 'e $HOME/vimfiles/.vimpref'
+      endif
    endif
 endfunction
 
@@ -871,14 +881,14 @@ function! OpenNewTabWithNetrw()
 endfunction
 
 "  ParagraphToEightyChars <><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: If the current line is > 80 chars then it will split thie line on
+"   brief: If the current line is > 80 chars then it will split the line on
 "          whitespace and then join the next line. It will keep doing this until
 "          it finds a line that is less than 80 chars long.
 function! ParagraphToEightyChars()
    while (len(getline(".")) > 80)
       normal! 0
       call search('\(\%81v.*\)\@<!\s\(.*\s.\{-}\%81v\)\@!', 'c', line('.'))
-      normal! r
+      exe "normal! r\<CR>"
       if (getline(line('.')+1) != '')
          normal! J
       endif
@@ -945,6 +955,7 @@ endfunction
 
 " :[cl]older         - Remembers previous quickfix/location list
 " :[cl]newer         - Remembers more recent quickfix/location list
+" :cl[ist]           - Shows the contets of the quickfix
 " :g!                - Negative global command, AKA do it on every line that's
 "                      DOESN'T match
 
