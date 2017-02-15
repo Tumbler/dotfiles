@@ -95,17 +95,17 @@ function! ReturnProject(input)
    for project in keys(g:ProjectManager)
       if (g:ProjectManager[project].type == 'R')
          if (input =~ project.'$')
-            " Found inital match flag for full check later
+            " Found inital match; flag for full check later
             let projects[project] = g:ProjectManager[project]
-            let keyMatch = '.'
+            let projects[project].keyMatch = '.'
          else
             for directory in g:ProjectManager[project]['dirs'][1:]
                " Strip out any leading "../"
                let restOfDir = matchstr(directory, '\(/\)\@<=[^.].*')
                if (input =~ restOfDir.'$')
-                  " Found inital match flag for full check later
+                  " Found inital match; flag for full check later
                   let projects[project] = g:ProjectManager[project]
-                  let keyMatch = directory
+                  let projects[project].keyMatch = directory
                   break
                endif
             endfor
@@ -113,15 +113,15 @@ function! ReturnProject(input)
       endif
    endfor
    for project in keys(projects)
-      let projects[project].root = ReturnAbsoluteRoot(projects[project], keyMatch)
+      let projects[project].root = ReturnAbsoluteRoot(projects[project], projects[project].keyMatch)
       if (projects[project].root != '')
          if (project == s:activeProject)
             " Project valid and is our active project, use this one!
             let key = keys(projects)[0]
             let s:activeProject = project
-            let b:ProjectRoot = projects[project].root
+            let ProjectRoot = projects[project].root
             exe "cd ".originalDir
-            return [g:ProjectManager[project], b:ProjectRoot]
+            return [g:ProjectManager[project], ProjectRoot]
          endif
       else
          " Not valid, it's out of the running
@@ -132,9 +132,9 @@ function! ReturnProject(input)
       " At least one project was valid. Return the first one.
       let key = keys(projects)[0]
       let s:activeProject = key
-      let b:ProjectRoot = projects[key].root
+      let ProjectRoot = projects[key].root
       exe "cd ".originalDir
-      return [g:ProjectManager[key], b:ProjectRoot]
+      return [g:ProjectManager[key], ProjectRoot]
    endif
 
    exe "cd ".originalDir
@@ -200,6 +200,11 @@ function! ReturnAbsoluteRoot(project, match)
       " All dirs checked out
       return root
    endif
+endfunction
+
+" ReturnProjectDirectories ><><><><><><><><><><><><><><><><><><><><><><><><><><>
+function ReturnProjectDirectories(input)
+   return ReturnProject(input)[0].dirs
 endfunction
 
 " Project <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -939,23 +944,46 @@ function! ProjectCompletion(arg, line, pos)
    endif
 endfunction
 
-" GetVimGrepFiles <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" FormatVimGrepFiles ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Gets the current projects directories and formats them properly for
 "          a vimgrep.
 "     input   - void
 "     returns - [string] A string containing all properly formated directories
 "               from the current project.
-function! GetVimGrepFiles()
-   let l:dirList = ReturnProject(getcwd())[0].dirs
-   let l:myReturnString = ""
-   if len(l:dirList) > 0
-      for dir in l:dirList
-         let l:myReturnString .= " " . dir . "/*"
+function! FormatVimGrepFiles(dirList)
+   let myReturnString = ""
+   if len(a:dirList) > 0
+      for dir in a:dirList
+         let myReturnString .= " " . dir . "/*"
       endfor
    else
-      let l:myReturnString = './*'
+      let myReturnString = './*'
    endif
-   return l:myReturnString
+   return myReturnString
+endfunction
+
+" ProjectVimGrep ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+function! ProjectVimGrep(searchWord)
+   let origdir = getcwd()
+   " Save for later
+
+   let ReturnedProjectStruct = ReturnProject(getcwd())
+   let project = ReturnedProjectStruct[0]
+   let projectRoot = ReturnedProjectStruct[1]
+
+   let searchDirs = FormatVimGrepFiles(project.dirs)
+   exe "cd " . projectRoot
+   " Change directory so that our relative projects can have the correct
+   "   starting point
+
+   exe "lvimgrep /" . a:searchWord."/j " . searchDirs
+   lw
+   exe "normal! j/" . a:searchWord
+   cclose
+   call setqflist([])
+
+   exe "cd " . origdir
+   " Back to where we started
 endfunction
 
 " StartDirSearch ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -997,7 +1025,7 @@ function! DirSearch(input)
          if (recurse)
             exec "lvimgrep /" . search . "/j ./**"
          else
-            exec "lvimgrep /" . search . "/j " . GetVimGrepFiles()
+            call ProjectVimGrep(search)
          endif
          lw
          let @/ = search
@@ -1021,12 +1049,14 @@ function! TraverseCtag(...)
    try
       " If it's part of a project then look in the "root" directory of the
       "   project for the tags file.
-      let project = ReturnProject(getcwd())[0]
+      let ReturnedProjectStruct = ReturnProject(getcwd())
+      let project = ReturnedProjectStruct[0]
+      let root = ReturnedProjectStruct[1]
       if (len(project) > 0)
          if (project.type == 'N')
             exe "setlocal tags=" . project.dirs[0] . "/tags"
          elseif (project.type == 'R')
-            exe "setlocal tags=" . b:ProjectRoot . "/tags"
+            exe "setlocal tags=" . root . "/tags"
          endif
       endif
       let initialWinNum = winnr("$")
@@ -1082,22 +1112,22 @@ endfunction
 "     returns - void
 function! GenerateCTags()
    let currentwd = ExpandDir(getcwd(), 0)
-   let dirs = ReturnProject(currentwd)[0].dirs
+   let dirs = ReturnProjectDirectories(currentwd)
    let microchipDirectoryExist = 0
    if len(dirs) == 0
-      exe "silent!! ctags " . GetVimGrepFiles()
+      exe "silent!! ctags " . FormatVimGrepFiles(dirs)
    else
       if isdirectory(ExpandDir("..\Microchip", 0))
          let microchipDirectoryExist = 1
       endif
       if (ExpandDir(dirs[0], 0) == currentwd)
-         exe "silent!! ctags " . GetVimGrepFiles()
+         exe "silent!! ctags " . FormatVimGrepFiles(dirs)
          if (microchipDirectoryExist)
             exe "silent!! ctags -aR ../Microchip/*"
          endif
       else
          exe "cd " . ExpandDir(dirs[0], 0)
-         exe "! ctags " . GetVimGrepFiles()
+         exe "! ctags " . FormatVimGrepFiles(dirs)
          if (microchipDirectoryExist)
             exe "silent!! ctags -aR ../Microchip/*"
          endif
