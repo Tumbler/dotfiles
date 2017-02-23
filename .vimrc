@@ -58,7 +58,7 @@ set diffopt=filler,vertical,context:1000000
 " Automatically opens diffs with filler lines for sync, vertically
 "   (side-by-side), and with all folds open
 set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym
-" vimgrep ignores object files TODO: This seems to be getting set from netrw now for some reason. May need to set up an autocmd for a per buffer basis.
+" vimgrep ignores object files
 set wildmenu
 " Tab completing in command-line gives visual menu
 set shellslash
@@ -521,7 +521,7 @@ if !isdirectory($HOME.'/vimfiles/swap')
 endif
 " Makes sure that our location for swap files exists
 if filereadable($HOME.'/vimfiles/.vimpref')
-   source $HOME/vimfiles/.vimpref
+   autocmd VimEnter * source $HOME/vimfiles/.vimpref
 endif
 " Loads additional, location specific, options should there be any
 "< End of Initializations
@@ -942,7 +942,7 @@ endfunction
 " Array Slices (or sublists as they're called in vimscript)
 " list[3:5]    Only return the 4th to the 6th item in the list
 " list[3:]     Only return the 4th and beyond item in the list
-" list[:5]     Only return up to the 3th item in the list
+" list[:5]     Only return up to the 6th item in the list
 
 ":set diffopt+=iwhite   - Ignores differing whitespace when diffing
                                            " Insert  Command-line   Lang-Arg ~
