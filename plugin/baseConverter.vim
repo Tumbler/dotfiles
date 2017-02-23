@@ -1,10 +1,13 @@
 " @Tracked
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 02/10/2017 01:19 PM
+" Last Edited: 02/23/2017 01:55 PM
 " Version: 1.2
 
-let g:vimBaseConversion = 1
+let g:loaded_baseConverter = 1
+
+" Options
+let g:baseConverter_leading_binary_zeros = 1;
 
 command! -nargs=1 Hexcon call HexConverter('<args>')
 " Automatically detect base and convert into 4 most common bases
@@ -181,7 +184,7 @@ function! BaseConversion(num, inBase, outBase, ...)
       let decimalPrecision = len(splitNum[1])
    endif
    let prefix = get(s:prefixes, a:outBase, '')
-   return prefix . Decimal2Base(decNum, a:outBase, decimalPrecision)
+   return ((a:0)?prefix:"") . Decimal2Base(decNum, a:outBase, decimalPrecision)
 endfunction!
 
 " Decimal2Base ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
