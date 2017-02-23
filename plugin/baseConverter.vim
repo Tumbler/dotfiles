@@ -2,12 +2,12 @@
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 02/23/2017 01:55 PM
-" Version: 1.2
+" Version: 1.3.0
 
 let g:loaded_baseConverter = 1
 
 " Options
-let g:baseConverter_leading_binary_zeros = 1;
+let g:baseConverter_leading_binary_zeros = 0
 
 command! -nargs=1 Hexcon call HexConverter('<args>')
 " Automatically detect base and convert into 4 most common bases
@@ -201,14 +201,34 @@ function! Decimal2Base(number, base, decimalPrecision)
       let precision = (a:decimalPrecision > 4) ? (a:decimalPrecision) : 4
       let result = Frac2Base('.'.splitNum[1], a:base, a:decimalPrecision)
       if (result == 1)
-         let result = Dec2Base(splitNum[0]+1, a:base)
+         let result = AddLeadingZeros(Dec2Base(splitNum[0]+1, a:base), a:base)
       else
-         let result = Dec2Base(splitNum[0], a:base) . result
+         let result = AddLeadingZeros(Dec2Base(splitNum[0], a:base), a:base) . result
       endif
+      " Remove any trailing zeros
       return substitute(result, '\..*\zs0\+$', '', '')
    else
-      return Dec2Base(splitNum[0], a:base)
+      return AddLeadingZeros(Dec2Base(splitNum[0], a:base), a:base)
    endif
+endfunction
+
+" AddLeadingZeros <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"  brief: If the number is binary and the g:baseConverter_leading_binary_zeros
+"         option is set, then add leading zeros until number is a valid nibble.
+"   input   - string: [string] A string representation of an integer binary
+"                     number (non-binary numbers get ignored)
+"             base: [int] A number describing the base of the number
+"   returns - [string] The string representation of the number with the
+"             appropriate amount of leading zeros appended to the beginning
+function! AddLeadingZeros(string, base)
+   " Only works in binary
+   let outString = a:string
+   if (a:base == 2 && g:baseConverter_leading_binary_zeros)
+      while (len(outString) % 4 != 0)
+         let outString = 0 . outString
+      endwhile
+   endif
+   return outString
 endfunction
 
 " Base2Dec ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
