@@ -20,11 +20,13 @@ autocmd BufCreate * if (&filetype == 'netrw') | call UpdateCVSHilighting() | end
 nnoremap <A-D> :call DiffWithCVS()<CR>
 nnoremap <A-C> :call CommitWithCVS()<CR>
 nnoremap <A-A> :call AddWithCVS()<CR>
+nnoremap <A-U> :call UpdateWithCVS()<CR>
 nnoremap <A--> :call StartCheck()<CR>
 nnoremap <A-_> :call StartCheck(1)<CR>
 
 command! CVSCommit :call CommitWithCVS()
 command! CVSAdd    :call AddWithCVS()
+command! CVSUpdate :call UpdateWithCVS()
 
 let s:CVSTMPstatusPath = $HOME.'/vimfiles/cvs'
 let s:CVSstatusPath = $HOME.'/vimfiles/cvs'
@@ -314,6 +316,20 @@ function! CommitWithCVS()
       exe "normal /" . file . "\rzz"
    else
       call CVScommit()
+      call CVSCheckForUpdates(1)
+   endif
+endfunction
+
+function! UpdateWithCVS()
+   if (&filetype == 'netrw')
+      let file = expand('<cWORD>')
+      call CVSupdate(file)
+      call CVSCheckForUpdates(0)
+      call UpdateCVSHilighting()
+      " Position cursor back on file
+      exe "normal /" . file . "\rzz"
+   else
+      call CVSupdate()
       call CVSCheckForUpdates(1)
    endif
 endfunction
