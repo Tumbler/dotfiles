@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 02/15/2017 10:16 AM
+" Last Edited: 03/02/2017 09:14 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -75,6 +75,8 @@ set undolevels=10000
 " Sets undo history to 10K changes (Default is 1000).
 set sessionoptions=blank,buffers,curdir,folds,globals,localoptions,options,resize,slash,tabpages,winpos,winsize
 " Save ALL the things when saving sessions
+set comments+=:\"
+" How could we forget about vim comments?!
 
 "if has("gui_running") && has("autocmd")
 "augroup Focus
@@ -95,7 +97,7 @@ set omnifunc=syntaxcomplete#Complete
 " Attempt to intelligently fill the omnicomplete by filetype
 
 set formatoptions+=jr
-" Remove extra comments when [J]oining
+" Remove extra comment headers when [J]oining
 " When in a comment, [r]eturn will automatically add a comment header
 
 let g:netrw_sort_sequence='[\/]$,*,\.o$,\.obj$,\.info$,\.d$,\.hex$,\.map$,\.mcp$,\.mcw$,\.lib$,\.swp$,\.bak$,\.lst$,\.rlf$,\.sdb$,\.CVSfolderStatus,\~$'
@@ -242,8 +244,11 @@ vnoremap J j
 vnoremap K k
 
 nnoremap <silent><A-J> :call ParagraphToEightyChars()<CR>
-" AutoComplete. (Activated with Ctrl+Space)
+nnoremap <silent>J maJ`a
+" Keep the cursor in the same place when doing a Join
+
 inoremap <C-Space> <C-n>
+" AutoComplete. (Activated with Ctrl+Space)
 
 " Change Focus Between Split Windows
 nnoremap <C-j>  <C-W>j
@@ -887,12 +892,17 @@ endfunction
 function! ParagraphToEightyChars()
    while (len(getline(".")) > 80)
       normal! 0
+      " Find the first white-space character before the 81st character.
       call search('\(\%81v.*\)\@<!\s\(.*\s.\{-}\%81v\)\@!', 'c', line('.'))
+      " Replace it with a new line.
       exe "normal! r\<CR>"
-      if (getline(line('.')+1) != '')
+      " If the next line has words, join it to avoid weird paragraph breaks.
+      if (getline(line('.')+1) =~ '\w')
          normal! J
       endif
    endwhile
+   " Trim any accidental trailing whitespace
+   :s/\s\+$//e
 endfunction
 "<
 
