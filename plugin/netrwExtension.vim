@@ -8,6 +8,8 @@ let g:netrwExtension = 1
 
 let g:vimpathmemFile = $HOME.'/vimfiles/.vimpathmem'
 
+let s:User_autoread = &autoread
+
 command! -nargs=1 -complete=dir Goto :call ManualExplore('<args>')
 " Allows to you jump to any directory without having to get there through netrw
 
@@ -62,7 +64,13 @@ function! SmartExplore(origin)
    endif
    "  If empty document then don't bother
    if (line('$') == 1 && getline(1) == '')
-      Explore
+      if !(s:User_autoread)
+         set autoread
+         Explore
+         set noautoread
+      else
+         Explore
+      endif
       call RememberLocation()
       if (&scrolloff =~# '0')
          normal zz
@@ -77,11 +85,22 @@ function! SmartExplore(origin)
       endif
       if (a:origin == 'netrw')
          call SyncDirs()
-         call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
+         if !(s:User_autoread)
+            set autoread
+            call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
+            set noautoread
+         else
+            call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
+         endif
       else
-         Explore
+         if !(s:User_autoread)
+            set autoread
+            Explore
+            set noautoread
+         else
+            Explore
+         endif
       endif
-      " TODO: Changed this, see if it works now.
       call search('^' . EscapeRegex(l:currentFilename) . '\*\=$')
       call AddToPathList(l:currentFilename)
       if (&scrolloff =~# '0')
