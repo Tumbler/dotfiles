@@ -1,8 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 02/03/2017 10:52 AM
-" Version: 1.9
+" Last Edited: 03/02/2017 10:50 AM
+" Version: 2.0.0
 
 let g:vimProjectManager = 1
 
@@ -203,8 +203,8 @@ function! ReturnAbsoluteRoot(project, match)
 endfunction
 
 " ReturnProjectDirectories ><><><><><><><><><><><><><><><><><><><><><><><><><><>
-function ReturnProjectDirectories(input)
-   return ReturnProject(input)[0].dirs
+function! ReturnProjectDirectories(input)
+   return ReturnProject(a:input)[0].dirs
 endfunction
 
 " Project <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -222,7 +222,8 @@ function! Project()
       let choice = input("\n(1) Print all projects\n" .
                          \ "(2) Add to a current project\n" .
                          \ "(3) Remove a project or directory from a project\n" .
-                         \ "(4) Create a new project\n" .
+                         \ "(4) Create a new absolute project\n" .
+                         \ "(5) Create a new relative project\n" .
                          \ "(You can also just type commands. Type \"help\" for a list of commands)\n\n", "", "custom,ProjectCompletion")
       let l:argumentlist = split(choice)
       if len(argumentlist) < 1
@@ -245,12 +246,14 @@ function! Project()
          if choice == "1"
             call PrintProject("@||", 0)
          elseif choice == "2"
-            call PrintProject("@||")
+            call PrintProject("@||", 0)
             call ExecuteCommand("add", [])
          elseif choice == "3"
             call ExecuteCommand("delete", [])
          elseif choice == "4"
             call ExecuteCommand("new", [])
+         elseif choice == "5"
+            call ExecuteCommand("newrel", [])
          endif
       endif
    endwhile
@@ -409,7 +412,7 @@ function! ExecuteCommand(command, options)
 
    elseif (command == "newrel") " ------------ newrel
       if len(a:options) == 0
-         let project = input("\nWhat should the project be called?\n")
+         let project = input("\nWhat is the main directory of the project?\n")
          if !has_key(g:ProjectManager, project)
             let project = substitute(project, '/\?$', '/', '')
             let g:ProjectManager[project] = {}
@@ -978,12 +981,15 @@ function! ProjectVimGrep(searchWord)
 
    exe "lvimgrep /" . a:searchWord."/j " . searchDirs
    lw
-   exe "normal! j/" . a:searchWord
+   exe "normal! \<C-W>j\<CR>"
+   let @/ = a:searchWord
    cclose
    call setqflist([])
 
    exe "cd " . origdir
    " Back to where we started
+
+   set hlsearch
 endfunction
 
 " StartDirSearch ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
