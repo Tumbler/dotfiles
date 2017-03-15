@@ -1,28 +1,31 @@
 " @Tracked
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 02/23/2017 01:55 PM
-" Version: 1.3.0
+" Last Edited: 03/07/2017 02:40 PM
+let s:Version = 1.03
 
-let g:loaded_baseConverter = 1
+if (exists("g:loaded_baseConverter") && (g:loaded_baseConverter >= s:Version))
+   finish
+endif
+let g:loaded_baseConverter = s:Version
 
 " Options
 let g:baseConverter_leading_binary_zeros = 0
 
-command! -nargs=1 Hexcon call HexConverter('<args>')
+command! -nargs=1 Hexcon call <SID>HexConverter('<args>')
 " Automatically detect base and convert into 4 most common bases
-command! -nargs=+ Base2Base echo BaseConversion(<f-args>)
+command! -nargs=+ Base2Base echo <SID>BaseConversion(<f-args>)
 " Convert any base to any other (2-16)
-command! ASCII call PrintASCIIChart()
+command! ASCII call <SID>PrintASCIIChart()
 " Prints out a staic table for quick number to ASCII conversions
 
-nnoremap <A-f> :call HexConverter(expand('<cword>'))<CR>
+nnoremap <A-f> :call <SID>HexConverter(expand('<cword>'))<CR>
 " Brings up the hex converter on number under cursor
 
 if has("autocmd")
 augroup BaseConversion
    au!
-   autocmd CursorMovedI * call CheckConversions()
+   autocmd CursorMovedI * call <SID>CheckConversions()
 augroup END
 endif
 
@@ -33,18 +36,18 @@ endif
 "         from a CursorMovedI event)
 "    input   - void
 "    returns - void
-function! CheckConversions()
+function! s:CheckConversions()
    let column = col('.')
    let wordBeforeCursor = matchstr(getline('.'), '\c\<[0-9a-fx]\+\.\=\x\+\%'.column.'c')
    let wordAfterCursor = matchstr(getline('.'), '\c\%'.(column-1).'c[0-9a-fx]\+\.\=\x\+')
    if (strlen(wordAfterCursor) == 0)
       " None of the word is after the cursor
-      let base = FindBase(wordBeforeCursor)
-      let rawNumber = StripLeader(wordBeforeCursor, base)
+      let base = <SID>FindBase(wordBeforeCursor)
+      let rawNumber = <SID>StripLeader(wordBeforeCursor, base)
       let beginingColumn = col('.') - strlen(wordBeforeCursor)
 
-      if (base != 0 && IsNumber(rawNumber, base) && rawNumber =~ '\S\{2,}')
-         call ListConversions(base, rawNumber, beginingColumn, wordBeforeCursor)
+      if (base != 0 && <SID>IsNumber(rawNumber, base) && rawNumber =~ '\S\{2,}')
+         call <SID>ListConversions(base, rawNumber, beginingColumn, wordBeforeCursor)
       endif
    else
       " Some of the number resides after the cursor... completing not possible
@@ -62,17 +65,17 @@ endfunction
 "              column: [int] The starting point of the number we're completing
 "              origWord: [string] The text that we're completing against
 "    returns - void
-function! ListConversions(base, rawNumber, column, origWord)
+function! s:ListConversions(base, rawNumber, column, origWord)
    let label = '   ' . {2: 'BIN', 8: 'OCT', 10: 'DEC', 16: 'HEX'}[a:base]
-   let decNumber = BaseConversion(a:rawNumber, a:base, 10)
+   let decNumber = <SID>BaseConversion(a:rawNumber, a:base, 10)
    call complete(a:column, [
         \ {'word':a:origWord, 'menu':label},
-        \ {'word':BaseConversion(a:rawNumber, a:base,  2, 1), 'menu': '   BIN'},
-        \ {'word':BaseConversion(a:rawNumber, a:base,  8, 1), 'menu': '   OCT'},
-        \ {'word':BaseConversion(a:rawNumber, a:base, 10, 1), 'menu': '   DEC'},
-        \ {'word':BaseConversion(a:rawNumber, a:base, 16, 1), 'menu': '   HEX'},
+        \ {'word':<SID>BaseConversion(a:rawNumber, a:base,  2, 1), 'menu': '   BIN'},
+        \ {'word':<SID>BaseConversion(a:rawNumber, a:base,  8, 1), 'menu': '   OCT'},
+        \ {'word':<SID>BaseConversion(a:rawNumber, a:base, 10, 1), 'menu': '   DEC'},
+        \ {'word':<SID>BaseConversion(a:rawNumber, a:base, 16, 1), 'menu': '   HEX'},
         \ (decNumber > 31 && decNumber < 127)?
-        \ {'word':nr2char(BaseConversion(a:rawNumber, a:base, 10, 1)), 'menu': ' ASCII'} : {}])
+        \ {'word':nr2char(<SID>BaseConversion(a:rawNumber, a:base, 10, 1)), 'menu': ' ASCII'} : {}])
 endfunction
 
 " HexConverter ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -80,17 +83,17 @@ endfunction
 "    input   - wordUnderCursor: [string] The number to try to convert
 "              optional: [bool] If present won't shift window
 "    returns - void
-function! HexConverter(wordUnderCursor, ...)
-   if !exists('t:inConvertMode')
-      let t:inConvertMode = 0
+function! s:HexConverter(wordUnderCursor, ...)
+   if !exists('t:baseConverter_inConvertMode')
+      let t:baseConverter_inConvertMode = 0
    endif
-   if !exists('t:lastCheck')
-      let t:lastCheck = ''
+   if !exists('t:baseConverter_lastCheck')
+      let t:baseConverter_lastCheck = ''
    endif
-   let base = FindBase(a:wordUnderCursor)
-   let rawNumber = StripLeader(a:wordUnderCursor, base)
+   let base = <SID>FindBase(a:wordUnderCursor)
+   let rawNumber = <SID>StripLeader(a:wordUnderCursor, base)
    if (strlen(a:wordUnderCursor) > 0)
-      let N = strlen(BaseConversion(rawNumber, base, 2, 1))
+      let N = strlen(<SID>BaseConversion(rawNumber, base, 2, 1))
    endif
    let shift = 0
    if (a:0 > 0)
@@ -108,48 +111,48 @@ function! HexConverter(wordUnderCursor, ...)
       endif
    endif
 
-   if (base != 0 && IsNumber(rawNumber, base) && a:wordUnderCursor =~ '\S\{2,}' && (a:0 || (t:lastCheck != a:wordUnderCursor)) && strlen(a:wordUnderCursor) > 0)
-      if (!t:inConvertMode)
+   if (base != 0 && <SID>IsNumber(rawNumber, base) && a:wordUnderCursor =~ '\S\{2,}' && (a:0 || (t:baseConverter_lastCheck != a:wordUnderCursor)) && strlen(a:wordUnderCursor) > 0)
+      if (!t:baseConverter_inConvertMode)
          set cmdheight=5
          if (shift)
             execute 'call feedkeys("\<C-o>'.shift.'\<C-y>")'
          endif
-         let t:inConvertMode = 1
+         let t:baseConverter_inConvertMode = 1
       endif
-      exe "echo '  BIN: ' . printf('%".N."s', BaseConversion(rawNumber, base, 2, 1)) .'\n'." .
-          \    "'  OCT: ' . printf('%".N."s', BaseConversion(rawNumber, base, 8, 1)) .'\n'." .
-          \    "'  DEC: ' . printf('%".N."s', BaseConversion(rawNumber, base, 10, 1)).'\n'." .
-          \    "'  HEX: ' . printf('%".N."s', BaseConversion(rawNumber, base, 16, 1))"
+      exe "echo '  BIN: ' . printf('%".N."s', <SID>BaseConversion(rawNumber, base, 2, 1)) .'\n'." .
+          \    "'  OCT: ' . printf('%".N."s', <SID>BaseConversion(rawNumber, base, 8, 1)) .'\n'." .
+          \    "'  DEC: ' . printf('%".N."s', <SID>BaseConversion(rawNumber, base, 10, 1)).'\n'." .
+          \    "'  HEX: ' . printf('%".N."s', <SID>BaseConversion(rawNumber, base, 16, 1))"
    else
-      if (t:inConvertMode)
+      if (t:baseConverter_inConvertMode)
          set cmdheight=1
          if (shift)
             execute 'call feedkeys("\<C-o>'.shift.'\<C-e>")'
          endif
-         let t:inConvertMode = 0
+         let t:baseConverter_inConvertMode = 0
       endif
    endif
-   if (t:lastCheck != a:wordUnderCursor)
-      let t:lastCheck = a:wordUnderCursor
+   if (t:baseConverter_lastCheck != a:wordUnderCursor)
+      let t:baseConverter_lastCheck = a:wordUnderCursor
    else
-      let t:lastCheck = ''
+      let t:baseConverter_lastCheck = ''
    endif
 endfunction
 
-" FindeBase ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" FindBase ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Does it's best to guess the base of the number.
 "    input   - number: [string] The number from which to determine the base
 "    returns - [int] The base number (2 for binary, 10 for decimal, etc...)
-function! FindBase(number)
-   if     (a:number[0:1] == '0b' && IsNumber(a:number[2:], 2))
+function! s:FindBase(number)
+   if     (a:number[0:1] == '0b' && <SID>IsNumber(a:number[2:], 2))
       return 2
-   elseif (a:number[0:1] =~ '0[0-7]' && IsNumber(a:number[2:], 8))
+   elseif (a:number[0:1] =~ '0[0-7]' && <SID>IsNumber(a:number[2:], 8))
       return 8
-   elseif (a:number[0:1] =~ '0x\c' && IsNumber(a:number[2:], 16))
+   elseif (a:number[0:1] =~ '0x\c' && <SID>IsNumber(a:number[2:], 16))
       return 16
-   elseif (IsNumber(a:number, 10))
+   elseif (<SID>IsNumber(a:number, 10))
       return 10
-   elseif (IsNumber(a:number, 16))
+   elseif (<SID>IsNumber(a:number, 16))
       return 16
    else
       return 0
@@ -163,7 +166,7 @@ endfunction
 "              base: [int] The base to check for
 "    returns - [bool] True if valid, false if invalid
 let s:digitList = {2: '[01.]', 8: '[0-7.]', 10: '[0-9.]', 16: '[0-9a-f.]'}
-function! IsNumber(number, base)
+function! s:IsNumber(number, base)
    return (a:number =~ '^'.s:digitList[a:base].'\+$')
 endfunction
 
@@ -175,16 +178,16 @@ endfunction
 "              optional: [bool] Whether or not to prepend a base leader (i.e. 0x)
 "    returns - [string] The input number converted to the base specified
 let s:prefixes = {2: '0b', 8: '0', 10: '', 16: '0x'}
-function! BaseConversion(num, inBase, outBase, ...)
+function! s:BaseConversion(num, inBase, outBase, ...)
    let splitNum = split(a:num, '\.')
-   let decNum = Base2Dec(splitNum[0], a:inBase)
+   let decNum = <SID>Base2Dec(splitNum[0], a:inBase)
    let decimalPrecision = 0
    if (len(splitNum) > 1)
-      let decNum .= '.'.Frac2Dec(splitNum[1], a:inBase)
+      let decNum .= '.'.<SID>Frac2Dec(splitNum[1], a:inBase)
       let decimalPrecision = len(splitNum[1])
    endif
    let prefix = get(s:prefixes, a:outBase, '')
-   return ((a:0)?prefix:"") . Decimal2Base(decNum, a:outBase, decimalPrecision)
+   return ((a:0)?prefix:"") . <SID>Decimal2Base(decNum, a:outBase, decimalPrecision)
 endfunction!
 
 " Decimal2Base ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -194,21 +197,21 @@ endfunction!
 "             decimalPrecision: [int] If number has a radix portion, how many
 "                               places after the radix point before rounding
 "   returns - [string] String representation of base [base] number
-function! Decimal2Base(number, base, decimalPrecision)
+function! s:Decimal2Base(number, base, decimalPrecision)
    let splitNum = split(a:number, '\.')
    let result = 0
    if (len(splitNum) > 1)
       let precision = (a:decimalPrecision > 4) ? (a:decimalPrecision) : 4
-      let result = Frac2Base('.'.splitNum[1], a:base, a:decimalPrecision)
+      let result = <SID>Frac2Base('.'.splitNum[1], a:base, a:decimalPrecision)
       if (result == 1)
-         let result = AddLeadingZeros(Dec2Base(splitNum[0]+1, a:base), a:base)
+         let result = <SID>AddLeadingZeros(<SID>Dec2Base(splitNum[0]+1, a:base), a:base)
       else
-         let result = AddLeadingZeros(Dec2Base(splitNum[0], a:base), a:base) . result
+         let result = <SID>AddLeadingZeros(<SID>Dec2Base(splitNum[0], a:base), a:base) . result
       endif
       " Remove any trailing zeros
       return substitute(result, '\..*\zs0\+$', '', '')
    else
-      return AddLeadingZeros(Dec2Base(splitNum[0], a:base), a:base)
+      return <SID>AddLeadingZeros(<SID>Dec2Base(splitNum[0], a:base), a:base)
    endif
 endfunction
 
@@ -220,7 +223,7 @@ endfunction
 "             base: [int] A number describing the base of the number
 "   returns - [string] The string representation of the number with the
 "             appropriate amount of leading zeros appended to the beginning
-function! AddLeadingZeros(string, base)
+function! s:AddLeadingZeros(string, base)
    " Only works in binary
    let outString = a:string
    if (a:base == 2 && g:baseConverter_leading_binary_zeros)
@@ -234,9 +237,9 @@ endfunction
 " Base2Dec ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "  brief: Convert any base [2-16] to decimal.
 "    input   - number: [string] String representation of an int to convert
-"              base: [int] Base of input number
+"              base: [int] This is the base of the input "number"
 "    returns - [int] Number converted to decimal
-function! Base2Dec(number, base)
+function! s:Base2Dec(number, base)
    let hexdig='0123456789abcdef'
    let result = 0
    let position = 0
@@ -256,7 +259,7 @@ endfunction
 "                      convert
 "              base: [int] Desired base
 "    returns - [int] Number converted to [base]
-function! Dec2Base(number, base)
+function! s:Dec2Base(number, base)
    let nr = str2float(a:number)
    let result = ''
    while (nr >= 1)
@@ -281,7 +284,7 @@ endfunction
 "              precision: [int] How many digits to compute before rounding
 "                 (min 4)
 "    returns - [string] String representation of fraction converted to new [base]
-function! Frac2Base(number, base, precision)
+function! s:Frac2Base(number, base, precision)
    let hexdig='0123456789ABCDEF'
    let fraction = str2float(a:number)
    let loopCounter = 0
@@ -327,7 +330,7 @@ endfunction
 "    input   - number: [string] String representation of fraction (i.e. .25)
 "              base: [int] Base of the input number [2-16]
 "    returns - [string] String representation of decimal fraction
-function! Frac2Dec(number, base)
+function! s:Frac2Dec(number, base)
    if (a:base >= 2 && a:base <= 16)
       let hexdig='0123456789abcdef'
       let result = 0.0
@@ -353,7 +356,7 @@ endfunction
 "    input   - number: [string] String representation of the number to strip
 "              base: [int] Base of input number
 "    returns - [string] String representation of the number without the header
-function! StripLeader(number, base)
+function! s:StripLeader(number, base)
    if (a:base == 2)
       return substitute(a:number, '^0b\c', '', '')
    elseif (a:base == 8)
@@ -371,7 +374,7 @@ endfunction
 "  brief: Prints a static chart of ASCII values so I can stop looking it up
 "    input   - void
 "    returns - void
-function! PrintASCIIChart()
+function! s:PrintASCIIChart()
    echo "| DEC HEX OCT CHR | DEC HEX OCT CHR | DEC HEX OCT CHR | \n"
    let start = 32
    while (start <= 63)
@@ -382,9 +385,9 @@ function! PrintASCIIChart()
          echon number
          echon "  "
          echohl PREPROC
-         echon BaseConversion(number, 10, 16) . " "
+         echon <SID>BaseConversion(number, 10, 16) . " "
          echohl NONE
-         let oct = BaseConversion(number, 10, 8)
+         let oct = <SID>BaseConversion(number, 10, 8)
          echon repeat(" ", 3-len(oct))
          echon oct . "  "
          echohl PREPROC
@@ -396,4 +399,26 @@ function! PrintASCIIChart()
       let start += 1
    endwhile
 endfunction
+
+" The MIT License (MIT)
+"
+" Copyright © 2017 Warren Terrall
+"
+" Permission is hereby granted, free of charge, to any person obtaining a copy
+" of this software and associated documentation files (the "Software"), to
+" deal in the Software without restriction, including without limitation the
+" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+" sell copies of the Software, and to permit persons to whom the Software is
+" furnished to do so, subject to the following conditions:
+"
+" The above copyright notice and this permission notice shall be included in
+" all copies or substantial portions of the Software.
+"
+" The software is provided "as is", without warranty of any kind, express or
+" implied, including but not limited to the warranties of merchantability,
+" fitness for a particular purpose and noninfringement. In no event shall the
+" authors or copyright holders be liable for any claim, damages or other
+" liability, whether in an action of contract, tort or otherwise, arising
+" from, out of or in connection with the software or the use or other dealings
+" in the software.
 "<< End of base Conversion plugin <><><><><><><><><><><><><><><><><><><><><><><>
