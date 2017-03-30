@@ -4,6 +4,10 @@
 " Last Edited: 03/02/2017 10:50 AM
 " Version: 2.0.0
 
+" TODO: Might want to make it possible to have a two relative directories with
+"       the same name
+" TODO: Community plugin standards
+
 let g:vimProjectManager = 1
 
 let s:ProjectManagerCommands = ["activate", "add", "blarg", "delete", "help", "new", "newrel", "main", "quit", "remove", "rename", "select", "view"]
@@ -36,8 +40,8 @@ endif
 " Brings up the Directory Search Prompt (See DirSearch)
 
 " ReturnProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Returns the dirs in a project as list
-"     input   - input: [string] a project name or directory as a string
+"   brief: Returns the dirs in a project as list
+"     input   - input: [string] A project name or directory as a string
 "     returns - [[project{}, root]] a project is a structure defined as the following:
 "                Project
 "                   .type     " The character 'N' or 'R' (normal or relative)
@@ -143,8 +147,8 @@ function! ReturnProject(input)
 endfunction
 
 " ReturnAbsoluteRoot ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Finds out if the relative directory structure of the current project
-"         is valid for our cwd.
+"   brief: Finds out if the relative directory structure of the current project
+"          is valid for our cwd.
 "  returns: The absolute root path for valid, '' for invalid
 function! ReturnAbsoluteRoot(project, match)
    if (a:project.type == "N")
@@ -208,7 +212,7 @@ function! ReturnProjectDirectories(input)
 endfunction
 
 " Project <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: The "main function" of the project manager
+"   brief: The "main function" of the project manager
 "     input   - void
 "     returns - void
 function! Project()
@@ -238,7 +242,7 @@ function! Project()
          elseif has_key(g:ProjectManager, l:matchlist[0])
             call PrintProject(l:matchlist[0], 0)
          else
-            call EchoError("Parse Error!")
+            call <SID>EchoError("Parse Error!")
          endif
       elseif len(l:matchlist) > 1
          normal \<Esc>
@@ -260,9 +264,9 @@ function! Project()
 endfunction
 
 " ParseChoice <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Finds commands or projects that user input matches. Exact matches will
-"            take precedence. If there are multiple partial matches, a list
-"            will be returned instead.
+"   brief: Finds commands or projects that user input matches. Exact matches will
+"          take precedence. If there are multiple partial matches, a list
+"          will be returned instead.
 "     input   - choice: [string] User input to match to
 "               commandFlag: [bool] False: won't take commands into account when
 "                           matching
@@ -303,9 +307,9 @@ function! ParseChoice(choice, commandFlag)
 endfunction
 
 " FillProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Similar to ParseChoice, but only searches for projects and will
-"            return a match only if there is exactly one match
-"     input   - partialProject: [string] typically user input to try to match to
+"   brief: Similar to ParseChoice, but only searches for projects and will
+"          return a match only if there is exactly one match
+"     input   - partialProject: [string] Typically user input to try to match to
 "                             an existing project
 "     returns - [string] either the matched project or the original input
 function! FillProject(partialProject)
@@ -318,8 +322,8 @@ function! FillProject(partialProject)
 endfunction
 
 " ExecuteCommand ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Executes any command from s:ProjectManagerCommands
-"     input   - command: [string] which command to execute
+"   brief: Executes any command from s:ProjectManagerCommands
+"     input   - command: [string] Which command to execute
 "               options: [string[]] list of strings with additional, optional
 "                        command-line arguments determined by the context of
 "                        the command
@@ -366,7 +370,7 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project]["dirs"] = []
             let s:activeProject = project
          else
-            call EchoError(project . " already exists in project manager!")
+            call <SID>EchoError(project . " already exists in project manager!")
             return 0
          endif
          let dir = ""
@@ -384,7 +388,7 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project]["dirs"] = []
             let s:activeProject = project
          else
-            call EchoError(project . " already exists in project manager!")
+            call <SID>EchoError(project . " already exists in project manager!")
             return 0
          endif
          let dir = ""
@@ -402,7 +406,7 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project]["dirs"] = []
             let s:activeProject = project
          else
-            call EchoError(project . " already exists in project manager!")
+            call <SID>EchoError(project . " already exists in project manager!")
             return 0
          endif
          for dir in a:options[1:]
@@ -420,7 +424,7 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project]["dirs"] = []
             let s:activeProject = project
          else
-            call EchoError(project . " already exists in project manager!")
+            call <SID>EchoError(project . " already exists in project manager!")
             return 0
          endif
          call AddDirectory(project, '.', "R")
@@ -440,7 +444,7 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project]["dirs"] = []
             let s:activeProject = project
          else
-            call EchoError(project . " already exists in project manager!")
+            call <SID>EchoError(project . " already exists in project manager!")
             return 0
          endif
          call AddDirectory(project, '.', "R")
@@ -460,7 +464,7 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project]["dirs"] = []
             let s:activeProject = project
          else
-            call EchoError(project . " already exists in project manager!")
+            call <SID>EchoError(project . " already exists in project manager!")
             return 0
          endif
          call AddDirectory(project, '.', "R")
@@ -481,7 +485,7 @@ function! ExecuteCommand(command, options)
                call AddDirectory(project, dir, g:ProjectManager[project]["type"])
             endwhile
          else
-            call EchoError(project . " project does not exist! Did you mean new?\n\n")
+            call <SID>EchoError(project . " project does not exist! Did you mean new?\n\n")
             return 0
          endif
          call PrintProject(project, 0)
@@ -497,7 +501,7 @@ function! ExecuteCommand(command, options)
             endwhile
          else
             call ClearScreen()
-            call EchoError(project . " project does not exist! Did you mean new?")
+            call <SID>EchoError(project . " project does not exist! Did you mean new?")
             return 0
          endif
       elseif len(a:options) > 1
@@ -509,7 +513,7 @@ function! ExecuteCommand(command, options)
             endfor
          else
             call ClearScreen()
-            call EchoError(project . " project does not exist! Did you mean new?\n\n")
+            call <SID>EchoError(project . " project does not exist! Did you mean new?\n\n")
             return 0
          endif
          call PrintProject(project, 0)
@@ -538,7 +542,7 @@ function! ExecuteCommand(command, options)
                   endif
                endif
             else
-               call EchoError(project . " does not exist!")
+               call <SID>EchoError(project . " does not exist!")
             endif
          elseif choice == 2
             let project = GetProject()
@@ -555,7 +559,7 @@ function! ExecuteCommand(command, options)
                call remove(g:ProjectManager[project]["dirs"], choice - 1)
                call PrintProject(project, 0)
             else
-               call EchoError(project . " does not exist!")
+               call <SID>EchoError(project . " does not exist!")
             endif
          endif
       elseif len(a:options) == 1
@@ -573,7 +577,7 @@ function! ExecuteCommand(command, options)
                echo project . " removed!\n\n"
             endif
          else
-            call EchoError(project . " does not exist!")
+            call <SID>EchoError(project . " does not exist!")
          endif
       elseif len(a:options) > 1
          let project = FillProject(a:options[0])
@@ -586,7 +590,7 @@ function! ExecuteCommand(command, options)
             call ClearScreen()
             call PrintProject(project, 0)
          else
-            call EchoError(project . " does not exist!")
+            call <SID>EchoError(project . " does not exist!")
          endif
       endif
 
@@ -599,7 +603,7 @@ function! ExecuteCommand(command, options)
             call PrintProject(project, 0)
             let s:activeProject = project
          else
-            call EchoError(project . " does not exist!")
+            call <SID>EchoError(project . " does not exist!")
          endif
       endif
 
@@ -616,10 +620,10 @@ function! ExecuteCommand(command, options)
                echon newProject
                let s:activeProject = newProject
             else
-               call EchoError(newProject . " is already a project!")
+               call <SID>EchoError(newProject . " is already a project!")
             endif
          else
-            call EchoError(project . " is not a valid project!")
+            call <SID>EchoError(project . " is not a valid project!")
          endif
       elseif len(a:options) == 1
          let project = FillProject(a:options[0])
@@ -633,10 +637,10 @@ function! ExecuteCommand(command, options)
                echon newProject
                let s:activeProject = newProject
             else
-               call EchoError(newProject . " is already a project!")
+               call <SID>EchoError(newProject . " is already a project!")
             endif
          else
-            call EchoError(project . " is not a valid project!")
+            call <SID>EchoError(project . " is not a valid project!")
          endif
       elseif len(a:options) == 2
          let project = FillProject(a:options[0])
@@ -650,10 +654,10 @@ function! ExecuteCommand(command, options)
                echon newProject
                let s:activeProject = newProject
             else
-               call EchoError(newProject . " is already a project!")
+               call <SID>EchoError(newProject . " is already a project!")
             endif
          else
-            call EchoError(project . " is not a valid project!")
+            call <SID>EchoError(project . " is not a valid project!")
          endif
       endif
 
@@ -689,7 +693,7 @@ function! ExecuteCommand(command, options)
             let s:activeProject = project
             call PrintProject(project, 0)
          else
-            call EchoError(project . " does not exist!")
+            call <SID>EchoError(project . " does not exist!")
          endif
       elseif len(a:options) == 1
          let project = FillProject(a:options[0])
@@ -707,7 +711,7 @@ function! ExecuteCommand(command, options)
             let s:activeProject = project
             call PrintProject(project, 0)
          else
-            call EchoError(project . " does not exist!")
+            call <SID>EchoError(project . " does not exist!")
          endif
       elseif len(a:options) == 2
          let project = FillProject(a:options[0])
@@ -719,7 +723,7 @@ function! ExecuteCommand(command, options)
                call PrintProject(project, 0)
                let s:activeProject = project
             else
-               call EchoError(a:options[1] . " does not exist in project " project)
+               call <SID>EchoError(a:options[1] . " does not exist in project " project)
             endif
          else
          endif
@@ -728,8 +732,8 @@ function! ExecuteCommand(command, options)
 endfunction
 
 " GetProject ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Asks for a project and then matches against known projects. If there
-"            is more than one match it will "beep" but remember the current
+"   brief: Asks for a project and then matches against known projects. If there
+"          is more than one match it will "beep" but remember the current
 "            input, allowing the user to add more input for clarification
 "            without having to type the original information over again.
 "     input   - void
@@ -752,10 +756,10 @@ function! GetProject()
 endfunction
 
 " AddDirectory ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Adds dir to project. Properly handles "\"'s, pre-existence, and
-"            relative paths
+"   brief: Adds dir to project. Properly handles "\"'s, pre-existence, and
+"          relative paths
 "     input   - project: [Dictionary] The dictionary to add the dir to
-"               dir: [string] the dir to add to the project
+"               dir: [string] The dir to add to the project
 "     returns - [bool] True if add succeeded
 function! AddDirectory(project, dir, relative)
    if isdirectory(a:dir)
@@ -787,8 +791,8 @@ function! AddDirectory(project, dir, relative)
 endfunction
 
 " PrintProject ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Prints out given project in a clean looking manner
-"     input - inputProject: [string] the project to print or the string "@||"
+"   brief: Prints out given project in a clean looking manner
+"     input - inputProject: [string] The project to print or the string "@||"
 "                           to print all projects
 "             option: - [int] 0: normal operation
 "                             1: print numbers before dirs
@@ -825,7 +829,7 @@ function! PrintProject(inputProject, option)
 endfunction
 
 " ClearScreen <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Clears command line.
+"   brief: Clears command line.
 "     input   - void
 "     returns - void
 function! ClearScreen()
@@ -835,7 +839,7 @@ function! ClearScreen()
 endfunction
 
 " SaveProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Saves project information to s:projectFile
+"   brief: Saves project information to s:projectFile
 "     input   - void
 "     returns - void
 function! SaveProject()
@@ -850,7 +854,7 @@ function! SaveProject()
 endfunction
 
 " LoadProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Loads project information stored at s:projectFile
+"   brief: Loads project information stored at s:projectFile
 "     input   - void
 "     returns - void
 function! LoadProject()
@@ -884,12 +888,12 @@ function! LoadProject()
 endfunction
 
 " ExpandDir <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Expands relative directories to absolute as well as takes out any
-"         Win-slashes.
-"     input   - dir: [string] the directory to expand
-"     input   - trailingSlashFlag: [bool] returns a string with a trailing slash
+"   brief: Expands relative directories to absolute as well as takes out any
+"          Win-slashes.
+"     input   - dir: [string] The directory to expand
+"     input   - trailingSlashFlag: [bool] Returns a string with a trailing slash
 "               if true, without if false.
-"     returns - dir: [string] the expanded directory
+"     returns - dir: [string] The expanded directory
 function! ExpandDir(dir, trailingSlashFlag)
    let newDir = a:dir
    if (a:trailingSlashFlag)
@@ -903,9 +907,9 @@ function! ExpandDir(dir, trailingSlashFlag)
 endfunction
 
 " ProjectCompletion <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: This is a custom completion function that will complete the list of
-"         commands, projects, or directories based on which argument the
-"         user is currently typing.
+"   brief: This is a custom completion function that will complete the list of
+"          commands, projects, or directories based on which argument the
+"          user is currently typing.
 "     input/returns - see :h command-completion-custom
 function! ProjectCompletion(arg, line, pos)
    let returnString = ""
@@ -1006,8 +1010,8 @@ function! StartDirSearch()
 endfunction
 
 " DirSearch <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Takes a pattern and searches the whole directory (or project) for
-"            matches.
+"   brief: Takes a pattern and searches the whole directory (or project) for
+"          matches.
 "     input   - input: [string] A regex pattern to search for
 "               (use \r for recursive or \R for recursive from parent directory)
 "     returns - void
@@ -1039,7 +1043,7 @@ function! DirSearch(input)
       catch /^Vim\%((\a\+)\)\=:E480/
          " E480: No match
          " Not an error, but still need to inform the user that their search failed
-         call EchoError(matchstr(v:exception, 'No.*'))
+         call <SID>EchoError(matchstr(v:exception, 'No.*'))
       endtry
    endif
 endfunction
@@ -1106,7 +1110,7 @@ function! TraverseCtag(...)
       elseif (winnr("$") > initialWinNum)
          quit
       endif
-      call EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=.*$'))
+      call <SID>EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=.*$'))
    endtry
 endfunction
 
@@ -1144,7 +1148,7 @@ endfunction
 
 " ReturnTagFile <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Finds the file that a tag resides in. If there are more than one, it
-"            takes the first one.
+"          takes the first one.
 "     input   - tag: [string] What tag we're searching for
 "     returns - [string] The file that the tag resides in or empty if the tag
 "               doesn't exist
@@ -1156,6 +1160,18 @@ function! ReturnTagFile(tag)
    catch /^Vim\%((\a\+)\)\=:E426/
       return ""
    endtry
+endfunction
+
+" EchoError <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Echos message with error hilighting (usually red background with
+"          white text).
+"     input   - message: [string] A string to echo on the command line
+"     returns - void
+function! s:EchoError(message)
+   echo "\n"
+   echohl ERROR
+   echo a:message
+   echohl NORMAL
 endfunction
 
 
