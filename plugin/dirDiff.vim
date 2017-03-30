@@ -1,20 +1,44 @@
 " @Tracked
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/23/2017 04:57 PM
-let s:Version = 2.00
+" Last Edited: 03/29/2017 04:35 PM
+let s:Version = 2.01
 
-"TODO: Add back support for a light color theme.
-
+" Anti-inclusion guard and version
+if (exists("g:loaded_baseConverter") && (g:loaded_baseConverter >= s:Version))
+   finish
+endif
 let g:loaded_dirDiff = s:Version
+
+" Options
+" Ignores all directories with names that match this list
+let g:dirDiff_IgnoreDirs = ['CVS']
+" Include hidden files in the diff
+let g:dirDiff_IncludeHiddenFiles = 0
+
+" Definitions:
+" A {directory} is a dictionary with the following structure:
+"   Key
+"   |--dirs[{directory}]         " The key is the dir name the value is another
+"   |                            "   directory structure
+"   |--files[string]             " A list of files
+"   |--path[string]              " An absolute path to the directory
+"   |--currentNode[&{directory}] " A reference to the active (currently viewed)
+"   |                            "   node
+"   |--parentNode[&{directory}]  " A reference to the parent of the active node
+"   |--root[bool]                " Whether or not this node is the root of the
+"                                "   comparison (has no parent)
 
 
 let s:DirMode = 0
+let s:uniqueID = 0
+let s:sortDirs = [[], []]
+
 " DirDiff <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Diffs two directories and allows you to quickly jump between different
+"   brief: Diffs two directories and allows you to quickly jump between different
 "          files in the dirs.
-"     input - a:1 [bool] When present opens diff with first dir on left.
-"                          Opens on right otherwise. {optional}
+"     input   - optional: [bool] When present opens diff with first dir on left.
+"                         Opens on right otherwise.
 "     returns - void
 function! DirDiff(...)
    if (&filetype == 'netrw')
@@ -76,6 +100,9 @@ function! DirDiff(...)
    endif
 endfunction
 
+" SetUpLegend <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Sets up the "Legend" buffer to show the user what colors mean
+"    returns - void
 function! s:SetUpLegend()
    let g:dirDiff_LegendFile = tempname()
    let text =
@@ -91,7 +118,7 @@ function! s:SetUpLegend()
     \   'UniqueFile']
    call writefile(text, g:dirDiff_LegendFile)
    exe 'tabnew ' . g:dirDiff_LegendFile
-   let t:DIFFDIR = 1
+   let t:dirDiff_tab = 1
    let g:dirDiff_LegendBuff = bufnr('%')
    nmap <silent><buffer> l :call <SID>BackoutOfSingle()<CR>
    nmap <silent><buffer> - :call <SID>BackoutOfSingle()<CR>
@@ -101,27 +128,34 @@ function! s:SetUpLegend()
 endfunction
 
 " SetupDirDiffTab <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Sets up a tab as a DirDiff tab. Sets all the neccessary variables and
+"          mappings for both windows.
+"    input   - firstDir: [string] A path to setup as the first directory
+"              secondDir: [string] A path to setup as the secdond directory
+"              switchFlag: [bool] Weather or not to switch back to the first
+"                          window after setting up the whole tab
+"    returns - void
 function! s:SetupDirDiffTab(firstDir, secondDir, switchFlag)
    tabnew
    call <SID>SetTabName('Dir Diff')
-   let t:DIFFDIR = 1
+   let t:dirDiff_tab = 1
    let firstDir = substitute(a:firstDir, '/\=$', '/', '')
    let secondDir = substitute(a:secondDir, '/\=$', '/', '')
-   let t:dirDiffFirstDir = {}
-   let t:dirDiffSecondDir = {}
-   call <SID>InitializeDir(firstDir, t:dirDiffFirstDir)
-   call <SID>InitializeDir(secondDir, t:dirDiffSecondDir)
+   let t:dirDiff_FirstDir = {}
+   let t:dirDiff_SecondDir = {}
+   call <SID>InitializeDir(firstDir, t:dirDiff_FirstDir)
+   call <SID>InitializeDir(secondDir, t:dirDiff_SecondDir)
 
-   let t:dirDiffSortOrder = {}
-   let t:dirDiffSortOrder.currentNode = t:dirDiffSortOrder
-   let t:dirDiffSortOrder.index = [0, 0]
-   call <SID>PopulateSortOrder(t:dirDiffSortOrder, t:dirDiffFirstDir, t:dirDiffSecondDir)
+   let t:dirDiff_SortOrder = {}
+   let t:dirDiff_SortOrder.currentNode = t:dirDiff_SortOrder
+   let t:dirDiff_SortOrder.index = [0, 0]
+   call <SID>PopulateSortOrder(t:dirDiff_SortOrder, t:dirDiff_FirstDir, t:dirDiff_SecondDir)
 
-   call <SID>ViewDirDiff(t:dirDiffSortOrder, t:dirDiffFirstDir, t:dirDiffSecondDir)
-   let t:DiffDirFiles = []
+   call <SID>ViewDirDiff(t:dirDiff_SortOrder, t:dirDiff_FirstDir, t:dirDiff_SecondDir)
+   let t:dirDiff_Files = []
 
-   let t:dirDiffFirstDir.currentNode = t:dirDiffFirstDir
-   let t:dirDiffSecondDir.currentNode = t:dirDiffSecondDir
+   let t:dirDiff_FirstDir.currentNode = t:dirDiff_FirstDir
+   let t:dirDiff_SecondDir.currentNode = t:dirDiff_SecondDir
    if (a:switchFlag)
       wincmd w
    endif
@@ -143,17 +177,19 @@ function! s:InitializeDir(path, directory, ...)
    else
       let a:directory.root = 0
    endif
-   let dirFilesString = globpath(a:path, '*', 1)
-   let a:directory.files = split(dirFilesString, "\n")
+   let hiddenFiles = []
+   if (g:dirDiff_IncludeHiddenFiles)
+      let hiddenFiles = globpath(a:path, '.[^.]*', 1, 1)
+   endif
+   let a:directory.files = hiddenFiles + globpath(a:path, '*', 1, 1)
    let a:directory.dirs = {}
    let loopCount = 0
    for entry in a:directory.files
       if isdirectory(entry)
          " Take out all directories
          let dirName = fnamemodify(entry, ':t')
-         if (dirName != 'CVS')
-            " Don't add CVS directories. They're superfluous we don't really
-            " want to diff them.
+         if (index(g:dirDiff_IgnoreDirs, dirName) == -1)
+            " Don't add ignored directories.
             let a:directory.dirs[dirName.'/']  = {'name':dirName}
          endif
          call remove(a:directory.files, loopCount)
@@ -173,6 +209,14 @@ function! s:InitializeDir(path, directory, ...)
 endfunction
 
 " PopulateSortOrder <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Takes a dictionary and fills in all necessary varialbes in order to
+"         diff the current dir.
+"    input   - sort: [{dictionary}] the dictionary to fill
+"              dir1: [{directory}] A dictionary that contains all of the
+"                    directory structure for the first dir
+"              dir2: [{directory}] A dictionary that contains all of the
+"                    directory structure for the second dir
+"    returns - void
 function! s:PopulateSortOrder(sort, dir1, dir2)
    if (has_key(a:sort, 'Sorted'))
       " Already populated and sorted, move along.
@@ -181,16 +225,22 @@ function! s:PopulateSortOrder(sort, dir1, dir2)
       let dir1 = a:dir1
       let dir2 = a:dir2
       if (<SID>TreeIsDetached(1))
-         let dir1 = t:dirDiffSortOrder.backupNode[0]
+         let dir1 = t:dirDiff_SortOrder.backupNode[0]
       endif
       if (<SID>TreeIsDetached(2))
-         let dir2 = t:dirDiffSortOrder.backupNode[1]
+         let dir2 = t:dirDiff_SortOrder.backupNode[1]
       endif
 
       call <SID>CompareDirectories(a:sort, dir1, dir2, 1)
    endif
 endfunction
 
+" PopulateSingle ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Fills in the necessary variables to "diff" the current single
+"         directory
+"    input   - dir: [{directory}] A dictionary that contains all of the
+"                   directory structure to the dir
+"    returns - void
 function! s:PopulateSingle(dir)
    if (has_key(a:dir, 'Sorted'))
       " Already populated and sorted, move along.
@@ -206,38 +256,44 @@ function! s:PopulateSingle(dir)
    endif
 endfunction
 
+" ViewDirDiff <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Views the current structure in the current tab
+"     input   - sortOrder: [{dictionary}] The node to inspect
+"               dir1: [{directory}] The first dir to diff
+"               dir2: [{directory}] The second dir to diff
+"     returns - void
 function! s:ViewDirDiff(sortOrder, dir1, dir2)
    let savedWindow = winnr()
-   if (!has_key(a:sortOrder, "DiffDirFiles"))
+   if (!has_key(a:sortOrder, "dirDiff_Files"))
       " Files don't exsist, need to create them.
-      let a:sortOrder.DiffDirFiles = []
+      let a:sortOrder.dirDiff_Files = []
       " A list of temp files where we will store the "directory structure"
       "  to be examined
       if (winnr('$') < 2)
          vsplit
       endif
-      call <SID>SortDiffDir(a:sortOrder, a:dir1, a:dir2)
+      call <SID>SortDirDiff(a:sortOrder, a:dir1, a:dir2)
    else
       " Files already exist, just need to view them.
       if !(<SID>TreeIsDetached(1))
          wincmd h
-         exe 'silent e ' . a:sortOrder.DiffDirFiles[a:sortOrder.sortIndex*4 + 1*s:DirMode]
+         exe 'silent e ' . a:sortOrder.dirDiff_Files[a:sortOrder.sortIndex*4 + 1*s:DirMode]
          call <SID>HighlightDir()
-         let w:diffDir_buffNumber = a:sortOrder.browseBuff[0][a:sortOrder.sortIndex*2 + 1*s:DirMode]
+         let w:dirDiff_buffNumber = a:sortOrder.browseBuff[0][a:sortOrder.sortIndex*2 + 1*s:DirMode]
       endif
       if !(<SID>TreeIsDetached(2))
          if (winnr('$') < 2)
-            exe 'vnew ' . a:sortOrder.DiffDirFiles[a:sortOrder.sortIndex*4+2 + 1*s:DirMode]
+            exe 'vnew ' . a:sortOrder.dirDiff_Files[a:sortOrder.sortIndex*4+2 + 1*s:DirMode]
             if (!&splitright)
                " Make sure split shows up on side expected
                wincmd L
             endif
          else
             wincmd l
-            exe 'silent e ' . a:sortOrder.DiffDirFiles[a:sortOrder.sortIndex*4+2 + 1*s:DirMode]
+            exe 'silent e ' . a:sortOrder.dirDiff_Files[a:sortOrder.sortIndex*4+2 + 1*s:DirMode]
          endif
          call <SID>HighlightDir()
-         let w:diffDir_buffNumber = a:sortOrder.browseBuff[1][a:sortOrder.sortIndex*2 + 1*s:DirMode]
+         let w:dirDiff_buffNumber = a:sortOrder.browseBuff[1][a:sortOrder.sortIndex*2 + 1*s:DirMode]
       endif
    endif
    " This just sets the cursor where it should be
@@ -245,24 +301,29 @@ function! s:ViewDirDiff(sortOrder, dir1, dir2)
    call <SID>NextItem(winnr(), 0)
 endfunction
 
+" ViewSingle ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Like ViewDirDiff but only on a single dir
+"     input   - dir: [{directory}] The dir to view
+"               window: [int] Which window to view it in
+"     returns - void
 function! s:ViewSingle(dir, window)
-   if (!has_key(a:dir, "DiffDirFile"))
+   if (!has_key(a:dir, "dirDiff_File"))
       " Files don't exsist, need to create them.
-      let a:dir.DiffDirFile = tempname()
+      let a:dir.dirDiff_File = tempname()
       if (len(a:dir.Sorted) <= 0)
          call add(a:dir.Sorted, "** Empty **")
       endif
-      call writefile(a:dir.header + a:dir.Sorted, a:dir.DiffDirFile)
-      exe 'silent e ' . a:dir.DiffDirFile
+      call writefile(a:dir.header + a:dir.Sorted, a:dir.dirDiff_File)
+      exe 'silent e ' . a:dir.dirDiff_File
       let a:dir.browseBuff = bufnr('%')
-      let w:diffDir_buffNumber = bufnr('%')
+      let w:dirDiff_buffNumber = bufnr('%')
       set nomodifiable
       set cursorline
       call <SID>HighlightDir([], [], keys(a:dir.dirs), [], [], a:dir.files)
       call <SID>SetUpSingleMappings(a:window)
    else
       " Files already exist, just need to view them.
-      exe 'silent e ' . a:dir.DiffDirFile
+      exe 'silent e ' . a:dir.dirDiff_File
       call <SID>HighlightDir()
       let w:difDir_buffNumber = a:dir.browseBuff
    endif
@@ -270,6 +331,13 @@ function! s:ViewSingle(dir, window)
    call <SID>NextSingleItem(a:dir, 0)
 endfunction
 
+" ReattachNode ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: When a tree walker becomes detached from the trunk, this function
+"          will reattach it to the trunk to be synced and move with the trunk
+"          again.
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"               window: [int] Which window we're reattaching
+"     returns - void
 function! s:ReattachNode(sortOrder, window)
    if (<SID>TreeIsDetached(a:window))
       " Make sure that the tree is, in fact, detached before reattaching it.
@@ -281,14 +349,14 @@ function! s:ReattachNode(sortOrder, window)
       if (a:window == 1)
          " I would have used a:dir or GetCurrentNode here but for some
          " reason it didn't work. (Still not sure why)
-         let t:dirDiffFirstDir.currentNode = t:dirDiffSortOrder.backupNode[a:window-1]
+         let t:dirDiff_FirstDir.currentNode = t:dirDiff_SortOrder.backupNode[a:window-1]
       else
-         let t:dirDiffSecondDir.currentNode = t:dirDiffSortOrder.backupNode[a:window-1]
+         let t:dirDiff_SecondDir.currentNode = t:dirDiff_SortOrder.backupNode[a:window-1]
       endif
       let fullySyncedFlag = <SID>DeleteBackupNode(a:window)
       exe 'silent b ' . a:sortOrder.browseBuff[a:window-1][a:sortOrder.sortIndex*2 + 1*s:DirMode]
       call <SID>HighlightDir()
-      let w:diffDir_buffNumber = a:sortOrder.browseBuff[a:window-1][a:sortOrder.sortIndex*2 + 1*s:DirMode]
+      let w:dirDiff_buffNumber = a:sortOrder.browseBuff[a:window-1][a:sortOrder.sortIndex*2 + 1*s:DirMode]
       if (switchedFlag)
          wincmd w
       endif
@@ -299,8 +367,17 @@ function! s:ReattachNode(sortOrder, window)
    endif
 endfunction
 
-let s:uniqueID = 0
-function! s:SetUpMappings(sortOrder, window, ...)
+" SetUpMappings <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Sets up all local mappings to control the dirDiff
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"               window: [int] Which window we're mapping
+"               optional: [bool] If present the function will instead set up
+"                         autocommands that will set up the mappings once the
+"                         buffer is entered. This is required because we cannot
+"                         setup mappings to a buffer that is not active, but we
+"                         CAN set up autocommands in inactive buffers.
+"     returns - void
+function! s:SetUpMappings(window, ...)
    if (!exists('b:dirBinds') || a:0)
       if (a:0 == 0)
          exe "noremap <silent><buffer> j :call <SID>NextItem(". a:window . ", 1)<CR>"
@@ -340,6 +417,11 @@ function! s:SetUpMappings(sortOrder, window, ...)
    endif
 endfunction
 
+" SetUpSingleMappings <><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Same as SetUpMappings except it sets up mappings to the single file
+"          version of some of the functions
+"     input   - window: [int] Which window to set up
+"     returns - void
 function! s:SetUpSingleMappings(window)
    let dir = <SID>GetCurrentNode(a:window)
    if !(exists('b:dirBinds'))
@@ -358,21 +440,28 @@ function! s:SetUpSingleMappings(window)
    endif
 endfunction
 
-function! s:NextItem(window, direction)
+" NextItem ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Moves to next nth item in the current window and updates the view of
+"          the alternate window
+"     input   - window: [int] Which window is the currnet window
+"               n: [int] How far to move the pointer (works with negatives as
+"                  well)
+"     returns - void
+function! s:NextItem(window, n)
    let window = a:window-1
    let arrayLength = len(<SID>GetCurrentNode(0).Sorted[window])
    let lineWithFirstIndex = 5
    if (arrayLength > 0)
-      let t:dirDiffSortOrder.currentNode.index[window] = (<SID>GetCurrentNode(0).index[window] + a:direction) % arrayLength
+      let t:dirDiff_SortOrder.currentNode.index[window] = (<SID>GetCurrentNode(0).index[window] + a:n) % arrayLength
       if (<SID>GetCurrentNode(0).index[window] < 0)
-         let t:dirDiffSortOrder.currentNode.index[window] = arrayLength + <SID>GetCurrentNode(0).index[window]
+         let t:dirDiff_SortOrder.currentNode.index[window] = arrayLength + <SID>GetCurrentNode(0).index[window]
       endif
       " Retrieve the matching index for the other window (As long as the tree isn't detached)
       if !(<SID>TreeIsDetached(a:window+1))
          let otherIndex = index(<SID>GetCurrentNode(0).Sorted[(window+1)%2], <SID>GetCurrentNode(0).Sorted[window][<SID>GetCurrentNode(0).index[window]])
          wincmd w
          if (otherIndex != -1)
-            let t:dirDiffSortOrder.currentNode.index[(window+1)%2] = otherIndex
+            let t:dirDiff_SortOrder.currentNode.index[(window+1)%2] = otherIndex
             call setpos('.', [0, <SID>GetCurrentNode(0).index[(window+1)%2]+lineWithFirstIndex, 0, 0])
             normal zz
             set cursorline
@@ -387,10 +476,17 @@ function! s:NextItem(window, direction)
    endif
 endfunction
 
-function! s:NextSingleItem(dir, direction)
+" NextSingleItem ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Same as NextItem except doesn't update the view of the alternate
+"          window
+"     input   - dir: [{directory}] The directory to move the pointer in
+"               n: [int] How far to move the pointer (works with negativs as
+"                  well)
+"     returns - void
+function! s:NextSingleItem(dir, n)
    let arrayLength = len(a:dir.Sorted)
    if (arrayLength > 0)
-      let a:dir.index = (a:dir.index + a:direction) % arrayLength
+      let a:dir.index = (a:dir.index + a:n) % arrayLength
       if (a:dir.index < 0)
          let a:dir.index = arrayLength + a:dir.index
       endif
@@ -399,8 +495,13 @@ function! s:NextSingleItem(dir, direction)
    normal zz
 endfunction
 
+" LeftMouse <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Adds support for the mouse. Makes clicking the same as <CR>.
+"     input   - window: [int] The window being clicked on
+"     returns - void
 function! s:LeftMouse(window)
-   " TODO: Partial mouse support. Has some bugs. need to debug later.
+   " TODO: Partial mouse support. Has some bugs. Need to debug later.
+   " TODO: Might have problems when clicking on the inactive window.
    let before = getcurpos()[1]
    exe "normal! \<LeftMouse>"
    let difference = getcurpos()[1] - before
@@ -410,7 +511,14 @@ endfunction
 
 " DirDiffSelect <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   breif: If over a directory, browse into directory. If over a file, diff the
-"   file
+"          file
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"               window: [int] Which window the select is happening in
+"               dir1: [{directory}] The current node in the first directory in
+"                     the diff
+"               dir2: [{directory}] The current node in the second directory in
+"                     the diff
+"     returns - void
 function! s:DirDiffSelect(sortOrder, window, dir1, dir2)
    let window = a:window-1
    let firstSelected  = a:sortOrder.Sorted[window][<SID>GetCurrentNode(0).index[window]]
@@ -423,10 +531,10 @@ function! s:DirDiffSelect(sortOrder, window, dir1, dir2)
          call <SID>ViewDirDiff(<SID>GetCurrentNode(0), <SID>GetCurrentNode(1), <SID>GetCurrentNode(2))
       else
          "Directory was unique
-         if (!has_key(t:dirDiffSortOrder, 'backupNode'))
-            let t:dirDiffSortOrder.backupNode = [{}, {}]
+         if (!has_key(t:dirDiff_SortOrder, 'backupNode'))
+            let t:dirDiff_SortOrder.backupNode = [{}, {}]
          endif
-         let t:dirDiffSortOrder.backupNode[window] = <SID>GetCurrentNode(a:window)
+         let t:dirDiff_SortOrder.backupNode[window] = <SID>GetCurrentNode(a:window)
          call <SID>SingleTraverse(firstSelected, a:window)
          call <SID>PopulateSingle(<SID>GetCurrentNode(a:window))
          call <SID>ViewSingle(<SID>GetCurrentNode(a:window), a:window)
@@ -450,6 +558,12 @@ function! s:DirDiffSelect(sortOrder, window, dir1, dir2)
    endif
 endfunction
 
+" SelectSingle ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Same as DirDiffSelect but only handles one dir
+"     input   - path: [string] The path of the dir being selected in
+"               file: [string] The name of the item being selected
+"               window: [int] The window being selected in
+"     returns - void
 function! s:SelectSingle(path, file, window)
    if (a:file =~ '/$')
       " Selected a directory
@@ -462,37 +576,61 @@ function! s:SelectSingle(path, file, window)
    endif
 endfunction
 
+" ToggleDirMode <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Toggles between having the dirs display above all the files and
+"   beneath all the files
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"               dir1: [{directory}] The current node in the first directory in
+"                     the diff
+"               dir2: [{directory}] The current node in the second directory in
+"                     the diff
+"     returns - void
 function s:ToggleDirMode(sortOrder, dir1, dir2)
    if (s:DirMode)
       let s:DirMode = 0
    else
       let s:DirMode = 1
    endif
-   call <SID>SortDiffDir(a:sortOrder, a:dir1, a:dir2)
+   call <SID>SortDirDiff(a:sortOrder, a:dir1, a:dir2)
 endfunction
 
+" SwapEm ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Saps the lists between sorted having the dirs first and last
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"     returns - void
 function s:SwapEm(sortOrder)
    let save = deepcopy(a:sortOrder.Sorted)
    let a:sortOrder.Sorted = deepcopy(s:sortDirs)
    let s:sortDirs = deepcopy(save)
 endfunction
 
+" IncSortOrder ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Advances the index through the valid sort modes
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"               dir1: [{directory}] The current node in the first directory in
+"                     the diff
+"               dir2: [{directory}] The current node in the second directory in
+"                     the diff
+"     returns - void
 function s:IncSortOrder(sortOrder, dir1, dir2)
    let a:sortOrder.sortIndex = (a:sortOrder.sortIndex + 1) % 3
-   call <SID>SortDiffDir(a:sortOrder, a:dir1, a:dir2)
+   call <SID>SortDirDiff(a:sortOrder, a:dir1, a:dir2)
 endfunction
 
-" SortDiffDir <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: Sorts the files in the DiffDir in the following ways:
-"        1: All Common files followed by all Unique files (default)
-"        2: CommonDiff files, CommonSame files, Unique files
-"        3: Alphabetically
-"     input  - void
+" SortDirDiff <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Sorts the files in the DirDiff in the following ways:
+"          1: All Common files followed by all Unique files (default)
+"          2: CommonDiff files, CommonSame files, Unique files
+"          3: Alphabetically
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"               dir1: [{directory}] The current node in the first directory in
+"                     the diff
+"               dir2: [{directory}] The current node in the second directory in
+"                     the diff
 "     return - void
-let s:sortDirs = [[], []]
-function! s:SortDiffDir(sortOrder, dir1, dir2)
-   if exists('t:DIFFDIR')
-      " Only works in a DiffDir tab
+function! s:SortDirDiff(sortOrder, dir1, dir2)
+   if exists('t:dirDiff_tab')
+      " Only works in a DirDiff tab
       let initialWin = winnr()
       if (a:sortOrder.sortIndex == 0)
          let a:sortOrder.Sorted[0] = (a:sortOrder.CommonDir + a:sortOrder.firstUniqueDir + a:sortOrder.Common + a:sortOrder.firstUnique)
@@ -510,15 +648,21 @@ function! s:SortDiffDir(sortOrder, dir1, dir2)
          let s:sortDirs[0] = (a:dir1.files + sort(keys(a:dir1.dirs), 1))
          let s:sortDirs[1] = (a:dir2.files + sort(keys(a:dir2.dirs), 1))
       endif
-      if (len(a:sortOrder.DiffDirFiles) < ((a:sortOrder.sortIndex)*4+1))
-         call add(a:sortOrder.DiffDirFiles, tempname())
-         call add(a:sortOrder.DiffDirFiles, tempname())
-         call add(a:sortOrder.DiffDirFiles, tempname())
-         call add(a:sortOrder.DiffDirFiles, tempname())
-         call writefile(a:sortOrder.firstHeader + a:sortOrder.Sorted[0],  a:sortOrder.DiffDirFiles[(a:sortOrder.sortIndex)*4])
-         call writefile(a:sortOrder.firstHeader + s:sortDirs[0],          a:sortOrder.DiffDirFiles[(a:sortOrder.sortIndex)*4+1])
-         call writefile(a:sortOrder.secondHeader + a:sortOrder.Sorted[1], a:sortOrder.DiffDirFiles[(a:sortOrder.sortIndex)*4+2])
-         call writefile(a:sortOrder.secondHeader + s:sortDirs[1],         a:sortOrder.DiffDirFiles[(a:sortOrder.sortIndex)*4+3])
+      for list in a:sortOrder.Sorted
+         " If the dir is empty, indicate it.
+         if len(list) == 0
+            call add(list, '** Empty **')
+         endif
+      endfor
+      if (len(a:sortOrder.dirDiff_Files) < ((a:sortOrder.sortIndex)*4+1))
+         call add(a:sortOrder.dirDiff_Files, tempname())
+         call add(a:sortOrder.dirDiff_Files, tempname())
+         call add(a:sortOrder.dirDiff_Files, tempname())
+         call add(a:sortOrder.dirDiff_Files, tempname())
+         call writefile(a:sortOrder.firstHeader + a:sortOrder.Sorted[0],  a:sortOrder.dirDiff_Files[(a:sortOrder.sortIndex)*4])
+         call writefile(a:sortOrder.firstHeader + s:sortDirs[0],          a:sortOrder.dirDiff_Files[(a:sortOrder.sortIndex)*4+1])
+         call writefile(a:sortOrder.secondHeader + a:sortOrder.Sorted[1], a:sortOrder.dirDiff_Files[(a:sortOrder.sortIndex)*4+2])
+         call writefile(a:sortOrder.secondHeader + s:sortDirs[1],         a:sortOrder.dirDiff_Files[(a:sortOrder.sortIndex)*4+3])
       endif
       if (s:DirMode)
          call <SID>SwapEm(a:sortOrder)
@@ -539,11 +683,17 @@ function! s:SortDiffDir(sortOrder, dir1, dir2)
    endif
 endfunction!
 
+" SetUpBuffer <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Edits the correct buffer calculated from sortOrder and sets up
+"          appropriate window variables
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"               window: [int] The window to set up
+"     returns - void
 function s:SetUpBuffer(sortOrder, window)
    if !(<SID>TreeIsDetached(a:window))
-      exe 'edit! ' . a:sortOrder.DiffDirFiles[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode]
+      exe 'edit! ' . a:sortOrder.dirDiff_Files[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode]
       let a:sortOrder.browseBuff[a:window-1][a:sortOrder.sortIndex*2 + 1*s:DirMode] = bufnr('%')
-      let w:diffDir_buffNumber = bufnr('%')
+      let w:dirDiff_buffNumber = bufnr('%')
       if (exists('b:containedCommonSameDirs'))
          call <SID>HighlightDir()
       else
@@ -553,12 +703,12 @@ function s:SetUpBuffer(sortOrder, window)
             call <SID>HighlightDir(a:sortOrder.CommonSameDir, a:sortOrder.CommonDiffDir, a:sortOrder.secondUniqueDir, a:sortOrder.CommonSame, a:sortOrder.CommonDiff, a:sortOrder.secondUnique)
          endif
       endif
-      call <SID>SetUpMappings(a:sortOrder, winnr())
+      call <SID>SetUpMappings(winnr())
    else
-      let bufnr = bufnr(a:sortOrder.DiffDirFiles[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode])
+      let bufnr = bufnr(a:sortOrder.dirDiff_Files[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode])
       if (bufnr == -1)
-         exe "badd ".a:sortOrder.DiffDirFiles[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode]
-         let bufnr = bufnr(a:sortOrder.DiffDirFiles[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode])
+         exe "badd ".a:sortOrder.dirDiff_Files[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode]
+         let bufnr = bufnr(a:sortOrder.dirDiff_Files[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode])
       endif
       if (a:window == 1)
          call <SID>HighlightDir(a:sortOrder.CommonSameDir, a:sortOrder.CommonDiffDir, a:sortOrder.firstUniqueDir, a:sortOrder.CommonSame, a:sortOrder.CommonDiff, a:sortOrder.firstUnique, bufnr)
@@ -566,21 +716,26 @@ function s:SetUpBuffer(sortOrder, window)
          call <SID>HighlightDir(a:sortOrder.CommonSameDir, a:sortOrder.CommonDiffDir, a:sortOrder.secondUniqueDir, a:sortOrder.CommonSame, a:sortOrder.CommonDiff, a:sortOrder.secondUnique, bufnr)
       endif
       let a:sortOrder.browseBuff[a:window-1][a:sortOrder.sortIndex*2 + 1*s:DirMode] = bufnr
-      call <SID>SetUpMappings(a:sortOrder, winnr(), bufnr)
+      call <SID>SetUpMappings(winnr(), bufnr)
       " Buffer is already setup and can't be loaded. Do nothing.
    endif
 endfunction
 
 " HighlightDir ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Highlights file names in buffer based on window variables
+"   brief: Highlights file names in buffer based on window variables
 "    input   - void OR
-"              [string[]] A list of files to highlight green  (Identical)
-"              [string[]] A list of files to highlight blue   (Different)
-"              [string[]] A list of files to highlight orange (Unique)
+"              a:1: [string[]] A list of files to highlight as an Identical dir
+"              a:2: [string[]] A list of files to highlight as a different dir
+"              a:3: [string[]] A list of files to highlight as a unique dir
+"              a:4: [string[]] A list of files to highlight as an identical file
+"              a:5: [string[]] A list of files to highlight as adifferent file
+"              a:6: [string[]] A list of files to highlight as a unique file
+"              a:7: [int] The buffer number (only needed if the buffer that
+"                   you're highlighting isn't the current buffer)
 "    returns - void
 function! s:HighlightDir(...)
-   if exists('t:DIFFDIR')
-      " Only works in a DiffDir tab
+   if exists('t:dirDiff_tab')
+      " Only works in a dirDiff_ tab
       let bufnum = bufnr('%')
       if (a:0 == 7)
          let bufnum = a:7
@@ -641,6 +796,9 @@ function! s:HighlightDir(...)
          hi CommonDiff cterm=NONE ctermbg=bg ctermfg=116 gui=NONE guibg=bg guifg=SkyBlue
          hi Unique     cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
       else
+         hi CommonSameDir cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg='#00BB33'
+         hi CommonDiffDir cterm=NONE ctermbg=bg ctermfg=116 gui=NONE guibg=bg guifg='#FF55FF'
+         hi UniqueDir     cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=DarkRed
          hi CommonSame cterm=NONE ctermbg=bg ctermfg=28  gui=NONE guibg=bg guifg=DarkGreen
          hi CommonDiff cterm=NONE ctermbg=bg ctermfg=30  gui=NONE guibg=bg guifg=Darkcyan
          hi Unique     cterm=NONE ctermbg=bg ctermfg=167 gui=NONE guibg=bg guifg=indianred
@@ -649,15 +807,15 @@ function! s:HighlightDir(...)
 endfunction
 
 " DiffCurrentFile <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Diffs the two files passed in
-"    input   - [string] The first file in the diff
-"              [string] The second file in the diff
-"    returns - void
+"   brief: Diffs the two files passed in
+"     input   - firstFile: [string] The first file in the diff
+"               secondFile: [string] The second file in the diff
+"     returns - void
 function! s:DiffCurrentFile(firstFile, secondFile)
    if (<SID>GetCurrentNode(0).index[winnr()-1] <
-            \ len(<SID>GetCurrentNode(0).Common + <SID>GetCurrentNode(0).CommonDir) && exists('t:DIFFDIR') &&
+            \ len(<SID>GetCurrentNode(0).Common + <SID>GetCurrentNode(0).CommonDir) && exists('t:dirDiff_tab') &&
             \ a:firstFile != '** Empty **' && a:secondFile != '** Empty **')
-      " Only works in a DiffDir tab
+      " Only works in a DirDiff tab
       if (winnr() == 1)
          exe 'edit! ' a:firstFile
       else
@@ -666,7 +824,7 @@ function! s:DiffCurrentFile(firstFile, secondFile)
       set modifiable
       set nocursorline
       diffthis
-      noremap <buffer> - :call <SID>BackoutOfDIff()<CR>
+      noremap <buffer> - :call <SID>BackoutOfDiff()<CR>
       if (winnr() == 1)
          exe "normal! \<C-W>l"
          exe 'edit! ' a:secondFile
@@ -677,7 +835,7 @@ function! s:DiffCurrentFile(firstFile, secondFile)
       set modifiable
       set nocursorline
       diffthis
-      noremap <buffer> - :call <SID>BackoutOfDIff()<CR>
+      noremap <buffer> - :call <SID>BackoutOfDiff()<CR>
       exe "normal! \<C-W>w"
       set visualbell
       normal gg]c[c
@@ -686,9 +844,13 @@ function! s:DiffCurrentFile(firstFile, secondFile)
 endfunction
 
 " SingleFileEnter <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Edits the file and sets up a few settings to link it back to the
+"          dirdiff
+"     input   - file: [string] The file to edit
+"     returns - void
 function! s:SingleFileEnter(file)
-   if (exists('t:DIFFDIR') && a:file !~ '\*\* Empty \*\*$')
-      " Only works in a DiffDir tab
+   if (exists('t:dirDiff_tab') && a:file !~ '\*\* Empty \*\*$')
+      " Only works in a DirDiff tab
       exe 'edit! ' a:file
       set modifiable
       set nocursorline
@@ -696,26 +858,25 @@ function! s:SingleFileEnter(file)
    endif
 endfunction
 
-" BackoutOfDIff <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: returns to DirDiff screen when in a diff
-"    input   - void
+" BackoutOfDiff <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: returns to DirDiff screen when in a diff
 "    return  - void
-function! s:BackoutOfDIff()
-   if exists('t:DIFFDIR')
-      " Only works in a DiffDir tab
+function! s:BackoutOfDiff()
+   if exists('t:dirDiff_tab')
+      " Only works in a DirDiff tab
       let l:mod = &mod
       exe "normal! \<C-W>w"
       let l:mod = &mod || l:mod
       exe "normal! \<C-W>w"
 
       if (l:mod)
-         call EchoError('Please save file first!')
+         call <SID>EchoError('Please save file first!')
       else
          diffoff!
-         exe 'silent b ' . w:diffDir_buffNumber
+         exe 'silent b ' . w:dirDiff_buffNumber
          call <SID>HighlightDir()
          exe "normal! \<C-W>w"
-         exe 'silent b ' . w:diffDir_buffNumber
+         exe 'silent b ' . w:dirDiff_buffNumber
          call <SID>HighlightDir()
          set nomodifiable
          set cursorline
@@ -725,24 +886,27 @@ function! s:BackoutOfDIff()
          call <SID>NextItem(winnr(), 0)
       endif
    else
-      " If we aren't in a DiffDir tab, then we probably were trying to Explore.
+      " If we aren't in a DirDiff tab, then we probably were trying to Explore.
       noremap <buffer> - :call SmartExplore('file')<CR>
       call SmartExplore('file')
    endif
 endfunction
 
+" BackoutOfSingle <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Same as BackoutOfDiff but only for one side
+"     returns - void
 function! s:BackoutOfSingle()
-   if exists('t:DIFFDIR')
-      " Only works in a DiffDir tab
+   if exists('t:dirDiff_tab')
+      " Only works in a DirDiff tab
       let l:mod = &mod
       exe "normal! \<C-W>w"
       let l:mod = &mod || l:mod
       exe "normal! \<C-W>w"
 
       if (l:mod)
-         call EchoError('Please save file first!')
+         call <SID>EchoError('Please save file first!')
       else
-         exe 'silent b ' . w:diffDir_buffNumber
+         exe 'silent b ' . w:dirDiff_buffNumber
          call <SID>HighlightDir()
          set nomodifiable
          set cursorline
@@ -753,73 +917,84 @@ function! s:BackoutOfSingle()
          endif
       endif
    else
-      " If we aren't in a DiffDir tab, then we probably were trying to Explore.
+      " If we aren't in a DirDiff tab, then we probably were trying to Explore.
       noremap <buffer> - :call SmartExplore('file')<CR>
       call SmartExplore('file')
    endif
 endfunction
 
 " Traverse ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Sets all current attached nodes to dir passed in
+"     input   - dir: [{directory}] The dir to traverse to
+"     returns - void
 function! s:Traverse(dir)
-   let parentNode = t:dirDiffSortOrder.currentNode
-   if (!has_key(t:dirDiffSortOrder.currentNode, 'dirs'))
-      let t:dirDiffSortOrder.currentNode.dirs = {}
+   let parentNode = t:dirDiff_SortOrder.currentNode
+   if (!has_key(t:dirDiff_SortOrder.currentNode, 'dirs'))
+      let t:dirDiff_SortOrder.currentNode.dirs = {}
    endif
-   if (!has_key(t:dirDiffSortOrder.currentNode.dirs, a:dir))
-      let t:dirDiffSortOrder.currentNode.dirs[a:dir] = {}
+   if (!has_key(t:dirDiff_SortOrder.currentNode.dirs, a:dir))
+      let t:dirDiff_SortOrder.currentNode.dirs[a:dir] = {}
    endif
-   let t:dirDiffSortOrder.currentNode = t:dirDiffSortOrder.currentNode.dirs[a:dir]
-   let t:dirDiffSortOrder.currentNode.parentNode = parentNode
+   let t:dirDiff_SortOrder.currentNode = t:dirDiff_SortOrder.currentNode.dirs[a:dir]
+   let t:dirDiff_SortOrder.currentNode.parentNode = parentNode
 
    if !(<SID>TreeIsDetached(1))
-      let parentNode = t:dirDiffFirstDir.currentNode
-      let t:dirDiffFirstDir.currentNode = t:dirDiffFirstDir.currentNode.dirs[a:dir]
-      let t:dirDiffFirstDir.currentNode.parentNode = parentNode
+      let parentNode = t:dirDiff_FirstDir.currentNode
+      let t:dirDiff_FirstDir.currentNode = t:dirDiff_FirstDir.currentNode.dirs[a:dir]
+      let t:dirDiff_FirstDir.currentNode.parentNode = parentNode
    else
       " First tree is currently detached. Move the backupNode instead.
-      let parentNode = t:dirDiffSortOrder.backupNode[0]
-      let t:dirDiffSortOrder.backupNode[0] = t:dirDiffSortOrder.backupNode[0].dirs[a:dir]
-      let t:dirDiffSortOrder.backupNode[0].parentNode = parentNode
+      let parentNode = t:dirDiff_SortOrder.backupNode[0]
+      let t:dirDiff_SortOrder.backupNode[0] = t:dirDiff_SortOrder.backupNode[0].dirs[a:dir]
+      let t:dirDiff_SortOrder.backupNode[0].parentNode = parentNode
    endif
 
    if !(<SID>TreeIsDetached(2))
-      let parentNode = t:dirDiffSecondDir.currentNode
-      let t:dirDiffSecondDir.currentNode = t:dirDiffSecondDir.currentNode.dirs[a:dir]
-      let t:dirDiffSecondDir.currentNode.parentNode = parentNode
+      let parentNode = t:dirDiff_SecondDir.currentNode
+      let t:dirDiff_SecondDir.currentNode = t:dirDiff_SecondDir.currentNode.dirs[a:dir]
+      let t:dirDiff_SecondDir.currentNode.parentNode = parentNode
    else
       " Second tree is currently detached. Move the backupNode instead.
-      let parentNode = t:dirDiffSortOrder.backupNode[1]
-      let t:dirDiffSortOrder.backupNode[1] = t:dirDiffSortOrder.backupNode[1].dirs[a:dir]
-      let t:dirDiffSortOrder.backupNode[1].parentNode = parentNode
+      let parentNode = t:dirDiff_SortOrder.backupNode[1]
+      let t:dirDiff_SortOrder.backupNode[1] = t:dirDiff_SortOrder.backupNode[1].dirs[a:dir]
+      let t:dirDiff_SortOrder.backupNode[1].parentNode = parentNode
    endif
 endfunction
 
+" SingleTraverse ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Same as Traverse but only does one dir
+"     input   - dir: [{directory}] The dir to traverse to
+"               window: [int] The window being used in the traverse
+"     returns - 
 function! s:SingleTraverse(dir, window)
    if (a:window == 1)
-      let parentNode = t:dirDiffFirstDir.currentNode
-      let t:dirDiffFirstDir.currentNode = t:dirDiffFirstDir.currentNode.dirs[a:dir]
-      let t:dirDiffFirstDir.currentNode.parentNode = parentNode
+      let parentNode = t:dirDiff_FirstDir.currentNode
+      let t:dirDiff_FirstDir.currentNode = t:dirDiff_FirstDir.currentNode.dirs[a:dir]
+      let t:dirDiff_FirstDir.currentNode.parentNode = parentNode
    else
-      let parentNode = t:dirDiffSecondDir.currentNode
-      let t:dirDiffSecondDir.currentNode = t:dirDiffSecondDir.currentNode.dirs[a:dir]
-      let t:dirDiffSecondDir.currentNode.parentNode = parentNode
+      let parentNode = t:dirDiff_SecondDir.currentNode
+      let t:dirDiff_SecondDir.currentNode = t:dirDiff_SecondDir.currentNode.dirs[a:dir]
+      let t:dirDiff_SecondDir.currentNode.parentNode = parentNode
    endif
 endfunction
 
+" ParentDir <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: The opposite of Traverse. Sets all nodes to their parent node.
+"     returns - void
 function! s:ParentDir()
-   if (t:dirDiffFirstDir.currentNode.root != 1)
-      let t:dirDiffSortOrder.currentNode = t:dirDiffSortOrder.currentNode.parentNode
+   if (t:dirDiff_FirstDir.currentNode.root != 1)
+      let t:dirDiff_SortOrder.currentNode = t:dirDiff_SortOrder.currentNode.parentNode
       if !(<SID>TreeIsDetached(1))
-         let t:dirDiffFirstDir.currentNode = t:dirDiffFirstDir.currentNode.parentNode
+         let t:dirDiff_FirstDir.currentNode = t:dirDiff_FirstDir.currentNode.parentNode
       else
-         let t:dirDiffSortOrder.backupNode[0] = t:dirDiffSortOrder.backupNode[0].parentNode
+         let t:dirDiff_SortOrder.backupNode[0] = t:dirDiff_SortOrder.backupNode[0].parentNode
       endif
       if !(<SID>TreeIsDetached(2))
-         let t:dirDiffSecondDir.currentNode = t:dirDiffSecondDir.currentNode.parentNode
+         let t:dirDiff_SecondDir.currentNode = t:dirDiff_SecondDir.currentNode.parentNode
       else
-         let t:dirDiffSortOrder.backupNode[1] = t:dirDiffSortOrder.backupNode[1].parentNode
+         let t:dirDiff_SortOrder.backupNode[1] = t:dirDiff_SortOrder.backupNode[1].parentNode
       endif
-      call <SID>ViewDirDiff(t:dirDiffSortOrder.currentNode, t:dirDiffFirstDir.currentNode, t:dirDiffSecondDir.currentNode)
+      call <SID>ViewDirDiff(t:dirDiff_SortOrder.currentNode, t:dirDiff_FirstDir.currentNode, t:dirDiff_SecondDir.currentNode)
    else
       echohl ERROR
       echo "Already at root of comparison"
@@ -827,13 +1002,18 @@ function! s:ParentDir()
    endif
 endfunction
 
+" SingleParentDir <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Same as ParentDir but only does one dir
+"     input   - dir: [{directory}] The dir to traverse from
+"               window: [int] The window being used in the traverse
+"     returns - void
 function! s:SingleParentDir(dir, window)
    if (a:dir.root != 1)
       if (has_key(a:dir.parentNode, 'Sorted'))
          if (a:window == 1)
-            let t:dirDiffFirstDir.currentNode = t:dirDiffFirstDir.currentNode.parentNode
+            let t:dirDiff_FirstDir.currentNode = t:dirDiff_FirstDir.currentNode.parentNode
          elseif (a:window == 2)
-            let t:dirDiffSecondDir.currentNode = t:dirDiffSecondDir.currentNode.parentNode
+            let t:dirDiff_SecondDir.currentNode = t:dirDiff_SecondDir.currentNode.parentNode
          endif
          call <SID>ViewSingle(a:dir.parentNode, a:window)
       else
@@ -848,29 +1028,42 @@ function! s:SingleParentDir(dir, window)
 endfunction
 
 " GetCurrentNode ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Gets the current node for any of the trees
+"     input   - walker: [int] Which tree to fetch
+"     returns - [{directory}] The current node of the specified tree
 function! s:GetCurrentNode(walker)
    if      (a:walker == 0)
-      return t:dirDiffSortOrder.currentNode
+      return t:dirDiff_SortOrder.currentNode
    elseif (a:walker == 1)
-      return t:dirDiffFirstDir.currentNode
+      return t:dirDiff_FirstDir.currentNode
    elseif (a:walker == 2)
-      return t:dirDiffSecondDir.currentNode
+      return t:dirDiff_SecondDir.currentNode
    else
       return {}
    endif
 endfunction
 
+" DeleteBackupNode ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Deletes the reference to the backupNode in the "trunk"
+"     input   - window: [int] Which dir we should be deleting it for
+"     returns - [bool] True if it removed the entry, false if it only removed
+"               one backup and another remains
 function! s:DeleteBackupNode(window)
-   if (has_key(t:dirDiffSortOrder, 'backupNode'))
-      let t:dirDiffSortOrder.backupNode[a:window-1] = {}
-      if (empty(t:dirDiffSortOrder.backupNode[0]) && empty(t:dirDiffSortOrder.backupNode[1]))
-         call remove(t:dirDiffSortOrder, 'backupNode')
+   if (has_key(t:dirDiff_SortOrder, 'backupNode'))
+      let t:dirDiff_SortOrder.backupNode[a:window-1] = {}
+      if (empty(t:dirDiff_SortOrder.backupNode[0]) && empty(t:dirDiff_SortOrder.backupNode[1]))
+         call remove(t:dirDiff_SortOrder, 'backupNode')
          return 1
       endif
    endif
    return 0
 endfunction
 
+" TreeIsDetached ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Queries whether the tree is detached from the "trunk"
+"     input   - tree: [int] Which tree to query
+"     returns - [bool] True if the specified tree is currently detached, false
+"               if it is attached
 function! s:TreeIsDetached(tree)
    if (a:tree > 2)
       let tree = 1
@@ -879,10 +1072,21 @@ function! s:TreeIsDetached(tree)
    else
       let tree = a:tree
    endif
-   return (has_key(t:dirDiffSortOrder, 'backupNode') && !empty(t:dirDiffSortOrder.backupNode[tree-1]))
+   return (has_key(t:dirDiff_SortOrder, 'backupNode') && !empty(t:dirDiff_SortOrder.backupNode[tree-1]))
 endfunction
 
 " CompareDirectories ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Takes two directories and does all the work necessary to determine
+"          if they are equivalent in evry way or if they differ in some way
+"     input   - sortOrder: [{dictionary}] A reference to the "trunk"
+"               dir1: [{directory}] The first directory to compare
+"               dir2: [{directory}] The second directory to compare
+"               mustFinish: [bool] A flag that specifies if the function can
+"                           just return once it determines that the directories
+"                           are different (for speed) or if it must finish
+"                           populating the directory before it can return
+"     returns - [bool] True if the two directories are equivalent, false if they
+"               differ
 function! s:CompareDirectories(sortOrder, dir1, dir2, mustFinish)
    if (has_key(a:sortOrder, "Sorted"))
       " If there's anything different return true (bool so anything not zero).
@@ -1030,6 +1234,10 @@ endfunction
 
 " SetTabName ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Sets current tab name and updates all tabs
+"     input   - optional: [string] If present sets the tab's name to this, if
+"                         not present set the tab's name to the value of
+"                         w:mytablabel
+"     returns - void
 function! s:SetTabName(...)
    if (a:0 > 0)
       let w:mytablabel = a:1
@@ -1042,8 +1250,22 @@ endfunction
 " EscapeRegex <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Backslash escapes the characters for a "magic mode" regex. Returns
 "          escaped string.
+"     input   - input: [string] The regex string to escape
+"     returns - [string] The resulting escaped regex string
 function! s:EscapeRegex(input)
    return escape(a:input, '\^$.*~[&')
+endfunction
+
+" EchoError <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Echos message with error hilighting (usually red background with
+"          white text).
+"     input   - message: [string] A string to echo on the command line
+"     returns - void
+function! s:EchoError(message)
+   echo "\n"
+   echohl ERROR
+   echo a:message
+   echohl NORMAL
 endfunction
 
 " The MIT License (MIT)
