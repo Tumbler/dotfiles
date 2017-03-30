@@ -2,8 +2,9 @@
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 03/07/2017 02:40 PM
-let s:Version = 1.03
+let s:Version = 1.04
 
+" Anti-inclusion guard and version
 if (exists("g:loaded_baseConverter") && (g:loaded_baseConverter >= s:Version))
    finish
 endif
@@ -14,7 +15,8 @@ let g:baseConverter_leading_binary_zeros = 0
 
 command! -nargs=1 Hexcon call <SID>HexConverter('<args>')
 " Automatically detect base and convert into 4 most common bases
-command! -nargs=+ Base2Base echo <SID>BaseConversion(<f-args>)
+command! -nargs=+ Base2Base try | echo <SID>BaseConversion(<f-args>) | catch | catch /^Vim\%((\a\+)\)\=:E119/ let g:blarg = 41 | endtry
+
 " Convert any base to any other (2-16)
 command! ASCII call <SID>PrintASCIIChart()
 " Prints out a staic table for quick number to ASCII conversions
@@ -30,10 +32,10 @@ augroup END
 endif
 
 " CheckConversions ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Takes word under cursor and determines if it's a number. If it is it
-"         will pull up a conversion list, either in the completion list or in
-"         a command line print out. (This function is called automatically
-"         from a CursorMovedI event)
+"   brief: Takes word under cursor and determines if it's a number. If it is it
+"          will pull up a conversion list, either in the completion list or in
+"          a command line print out. (This function is called automatically
+"          from a CursorMovedI event)
 "    input   - void
 "    returns - void
 function! s:CheckConversions()
@@ -59,8 +61,8 @@ function! s:CheckConversions()
 endfunction
 
 " ListConversions <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Calls up a completion popup with conversion suggestions.
-"    input   - base: [int] base The base that the original number is in
+"   brief: Calls up a completion popup with conversion suggestions.
+"    input   - base: [int] Base The base that the original number is in
 "              rawNumber: [int] The number that needs to be converted
 "              column: [int] The starting point of the number we're completing
 "              origWord: [string] The text that we're completing against
@@ -79,7 +81,7 @@ function! s:ListConversions(base, rawNumber, column, origWord)
 endfunction
 
 " HexConverter ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Brings up a command line print out of conversion suggestions.
+"   brief: Brings up a command line print out of conversion suggestions.
 "    input   - wordUnderCursor: [string] The number to try to convert
 "              optional: [bool] If present won't shift window
 "    returns - void
@@ -140,7 +142,7 @@ function! s:HexConverter(wordUnderCursor, ...)
 endfunction
 
 " FindBase ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Does it's best to guess the base of the number.
+"   brief: Does it's best to guess the base of the number.
 "    input   - number: [string] The number from which to determine the base
 "    returns - [int] The base number (2 for binary, 10 for decimal, etc...)
 function! s:FindBase(number)
@@ -160,8 +162,8 @@ function! s:FindBase(number)
 endfunction
 
 " IsNumber ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Looks at all the digits of a given number and determines if it is a
-"            valid number for the given base.
+"   brief: Looks at all the digits of a given number and determines if it is a
+"          valid number for the given base.
 "    input   - number: [string] The number to check
 "              base: [int] The base to check for
 "    returns - [bool] True if valid, false if invalid
@@ -171,7 +173,7 @@ function! s:IsNumber(number, base)
 endfunction
 
 " BaseConversion ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Convert any base [2-16] to any other base [2-16].
+"   brief: Convert any base [2-16] to any other base [2-16].
 "    input   - num: [string] A string containing the number to convert
 "              inbase: [int] The base of the number to convert
 "              outbase: [int] The desired base
@@ -179,19 +181,23 @@ endfunction
 "    returns - [string] The input number converted to the base specified
 let s:prefixes = {2: '0b', 8: '0', 10: '', 16: '0x'}
 function! s:BaseConversion(num, inBase, outBase, ...)
-   let splitNum = split(a:num, '\.')
-   let decNum = <SID>Base2Dec(splitNum[0], a:inBase)
-   let decimalPrecision = 0
-   if (len(splitNum) > 1)
-      let decNum .= '.'.<SID>Frac2Dec(splitNum[1], a:inBase)
-      let decimalPrecision = len(splitNum[1])
+   if (a:outBase < 2 || a:outBase > 16)
+      call EchoError("Out base must be between 2 and 16!")
+   else
+      let splitNum = split(a:num, '\.')
+      let decNum = <SID>Base2Dec(splitNum[0], a:inBase)
+      let decimalPrecision = 0
+      if (len(splitNum) > 1)
+         let decNum .= '.'.<SID>Frac2Dec(splitNum[1], a:inBase)
+         let decimalPrecision = len(splitNum[1])
+      endif
+      let prefix = get(s:prefixes, a:outBase, '')
+      return ((a:0)?prefix:"") . <SID>Decimal2Base(decNum, a:outBase, decimalPrecision)
    endif
-   let prefix = get(s:prefixes, a:outBase, '')
-   return ((a:0)?prefix:"") . <SID>Decimal2Base(decNum, a:outBase, decimalPrecision)
 endfunction!
 
 " Decimal2Base ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Convert any decimal float to any base = [2-16]
+"   brief: Convert any decimal float to any base = [2-16]
 "   input   - number: [string] String representation of decimal float to convert
 "             base: [int] Desired base
 "             decimalPrecision: [int] If number has a radix portion, how many
@@ -216,8 +222,8 @@ function! s:Decimal2Base(number, base, decimalPrecision)
 endfunction
 
 " AddLeadingZeros <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: If the number is binary and the g:baseConverter_leading_binary_zeros
-"         option is set, then add leading zeros until number is a valid nibble.
+"   brief: If the number is binary and the g:baseConverter_leading_binary_zeros
+"          option is set, then add leading zeros until number is a valid nibble.
 "   input   - string: [string] A string representation of an integer binary
 "                     number (non-binary numbers get ignored)
 "             base: [int] A number describing the base of the number
@@ -235,7 +241,7 @@ function! s:AddLeadingZeros(string, base)
 endfunction
 
 " Base2Dec ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Convert any base [2-16] to decimal.
+"   brief: Convert any base [2-16] to decimal.
 "    input   - number: [string] String representation of an int to convert
 "              base: [int] This is the base of the input "number"
 "    returns - [int] Number converted to decimal
@@ -254,7 +260,7 @@ function! s:Base2Dec(number, base)
 endfunction
 
 " Dec2Base ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Convert decimal integer to any base [2-16]
+"   brief: Convert decimal integer to any base [2-16]
 "    input   - number: [string] String representation of a decimal number to
 "                      convert
 "              base: [int] Desired base
@@ -277,8 +283,8 @@ function! s:Dec2Base(number, base)
 endfunction
 
 " Frac2Base <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Takes a decimal float less than one (a fraction) and converts it to a
-"            different base [2-16]
+"   brief: Takes a decimal float less than one (a fraction) and converts it to a
+"          different base [2-16]
 "    input   - number: [string] String representation of a fraction (i.e. .25)
 "              base: [int] Desired base
 "              precision: [int] How many digits to compute before rounding
@@ -325,8 +331,8 @@ function! s:Frac2Base(number, base, precision)
 endfunction
 
 " Frac2Dec ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Takes a float less than one (a fraction) in any base [2-16] and
-"            converts it to a decimal fraction.
+"   brief: Takes a float less than one (a fraction) in any base [2-16] and
+"          converts it to a decimal fraction.
 "    input   - number: [string] String representation of fraction (i.e. .25)
 "              base: [int] Base of the input number [2-16]
 "    returns - [string] String representation of decimal fraction
@@ -351,8 +357,8 @@ function! s:Frac2Dec(number, base)
 endfunction
 
 " StripLeader <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Takes a string representation of a number and removes any header that
-"            isn't a valid digit. (i.e. 0x for hex)
+"   brief: Takes a string representation of a number and removes any header that
+"          isn't a valid digit. (i.e. 0x for hex)
 "    input   - number: [string] String representation of the number to strip
 "              base: [int] Base of input number
 "    returns - [string] String representation of the number without the header
@@ -371,7 +377,7 @@ function! s:StripLeader(number, base)
 endfunction
 
 " PrintASCIIChart <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"  brief: Prints a static chart of ASCII values so I can stop looking it up
+"   brief: Prints a static chart of ASCII values so I can stop looking it up
 "    input   - void
 "    returns - void
 function! s:PrintASCIIChart()
@@ -402,7 +408,7 @@ endfunction
 
 " The MIT License (MIT)
 "
-" Copyright Â© 2017 Warren Terrall
+" Copyright © 2017 Warren Terrall
 "
 " Permission is hereby granted, free of charge, to any person obtaining a copy
 " of this software and associated documentation files (the "Software"), to
