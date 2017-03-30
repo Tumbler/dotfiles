@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/02/2017 09:14 AM
+" Last Edited: 03/29/2017 09:52 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -48,6 +48,7 @@ set smartcase
 " Make searches be case insensitive unless capital letters are used
 set showmatch
 " When an ending bracket (or parin, or brace) is typed, jump to the matching one briefly for confirmation
+" (Highlighting parin is actually a standard plugin that is turned on by "DoMatchParen")
 set tags=./tags;
 " File it looks for to define ctags
 set winaltkeys=no
@@ -353,6 +354,9 @@ inoremap <A-b>   <C-o>:set number!<CR>
 nnoremap <A-B>   :call ToggleBinaryMode()<CR>
 inoremap <A-B>   <C-o>:call ToggleBinaryMode()<CR>
 " Open current file in binary mode
+nnoremap <A-a>   :set splitright <BAR> vsplit <BAR> set nosplitright<CR>
+" Open up a vertical split to the right. (I want my vplits to use splitright,
+" but I almost never want my diffsplits to. This is my workaround)
 nnoremap <silent><A-v> :call OpenVimrc()<CR>:silent! normal! zO<CR>
 " Opens vimrc (this file) in new tab
 nnoremap <silent><A-V> :call OpenVimrc(1)<CR>:silent! normal! zO<CR>
@@ -408,7 +412,7 @@ inoremap <silent><F4>  <C-o>:let b:lastSearch = @/<CR>ma/{<CR>%y'a:let @/ = b:la
 nnoremap <silent><F5>  :noh<CR>
 inoremap <silent><F5>  <C-o>:noh<CR>
 " Clears all highlighting
-nmap <F6> "ayiwmaO<Esc>0D<A-c>k0"wy$0D40i<><Esc>0R<C-r>w <C-r>a <Esc>`a
+nmap <F6> :call VimFunctionDoc()<CR>
 " Adds Tevis style documentation for functions
 " (Place cursor on function name and press F6)
 nnoremap <S-F6>  :call Javadoc()<Esc>
@@ -526,14 +530,22 @@ if !isdirectory($HOME.'/vimfiles/swap')
 endif
 " Makes sure that our location for swap files exists
 if filereadable($HOME.'/vimfiles/.vimpref')
-   autocmd VimEnter * source $HOME/vimfiles/.vimpref
+   if !(exists('g:Tumbler_vimrc'))
+      autocmd VimEnter * source $HOME/vimfiles/.vimpref
+   else
+      source $HOME/vimfiles/.vimpref
+   endif
 endif
 " Loads additional, location specific, options should there be any
 "< End of Initializations
 
 "> Functions
 " Bang after function means if the vimrc is reloaded they will get overwritten
-"  ToggleAutoScroll <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+
+" ToggleAutoScroll ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Toggles between keeping the cursor in the center of the screen and
+"          regular operation.
+"     returns - void
 function! ToggleAutoScroll()
    if &scrolloff =~# '9999'
       set scrolloff=0
@@ -542,7 +554,12 @@ function! ToggleAutoScroll()
    endif
 endfunction
 
-"  BlockCheck <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" BlockCheck ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Toggles between beginning of function and another location within
+"          the function. (Only works for C-like functions)
+"     input   - insertMode: [bool] Whether or not to go back into inser mode
+"                           after completion
+"     returns - void
 function! BlockCheck(insertMode)
    if !exists('b:checkingBlock')
       let b:checkingBlock = 0
@@ -570,8 +587,11 @@ function! BlockCheck(insertMode)
    endif
 endfunction
 
-"  SaveBuffer <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" SaveBuffer ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Saves buffer and updates last edited value if applicable.
+"     input   - source: [int] Determines what kind of save command has been
+"                       issued
+"     returns - void
 function! SaveBuffer(source)
    if (&mod == 1 || a:source == 4)
       " Only update the last edited info if the file has been modified.
@@ -608,17 +628,20 @@ function! SaveBuffer(source)
          write
       endif
       if (a:source == 1 || a:source == 3)
-         exec feedkeys(":q\<CR>")
+         quit
       endif
    else
       write
       if (a:source == 1 || a:source == 3)
-         exec feedkeys(":q\<CR>")
+         quit
       endif
    endif
 endfunction
 
-"  OpenVimrc ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" OpenVimrc <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Intelligently opens $MYVIMRC or .vimpref
+"     input   - optional: [bool] If present opens .vimpref instead
+"     returns - void
 function! OpenVimrc(...)
    " open in new tab unless current one is empty
    if line('$') == 1 && getline(1) == ''
@@ -637,14 +660,18 @@ function! OpenVimrc(...)
    endif
 endfunction
 
-"  RemoveTrailingWhitespace <><><><><><><><><><><><><><><><><><><><><><><><><><>
+" RemoveTrailingWhitespace ><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Removes all trailing whitespace and returns the window as it was.
+"     returns - void
 function! RemoveTrailingWhitespace()
    let initialWindowView = winsaveview()
    %s/\s\+$//e
    call winrestview(initialWindowView)
 endfunction
 
-"  ToggleReadOnlyBit ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" ToggleReadOnlyBit <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Toggles turning the file read only.
+"     returns - void
 function! ToggleReadOnlyBit()
   let fname = fnameescape(substitute(expand("%:p"), "\\", "/", "g"))
   checktime
@@ -659,7 +686,10 @@ function! ToggleReadOnlyBit()
   execute "au! FileChangedShell " . fname
 endfunction
 
-"  ShiftScreen ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" ShiftScreen <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Intelligently shifts screen one line in either direction
+"     input   - direction: [char] If 'j' then scroll down; up otherwise
+"     returns - void
 function! ShiftScreen(direction)
 " If we're in auto shift mode then don't add an extra shift
    if &scrolloff =~# '9999'
@@ -677,7 +707,11 @@ function! ShiftScreen(direction)
    endif
 endfunction
 
-"  EchoError ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" EchoError <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Echos message with error highlighting (usually red background with
+"          white text).
+"     input   - message: [string] A string to echo on the command line
+"     returns - void
 function! EchoError(message)
    echo "\n"
    echohl ERROR
@@ -685,8 +719,9 @@ function! EchoError(message)
    echohl NORMAL
 endfunction
 
-"  ToggleBinaryMode ><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-" :h xxd and :h binary for more information
+" ToggleBinaryMode ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: See :h xxd and :h binary for more information.
+"     returns - void
 function! ToggleBinaryMode()
    if !(&binary)
       set binary
@@ -699,9 +734,10 @@ function! ToggleBinaryMode()
    endif
 endfunction
 
-"  ExecuteRecognizedFile ><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" ExecuteRecognizedFile <><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: If extension matches a list stored in g:recognizedFiles, then run it
 "          in a shell in the background.
+"     returns - void
 function! ExecuteRecognizedFile()
    let fileToExecute = substitute(expand('<cWORD>'), '\*\($\)\@=', '', '')
    let found = 0
@@ -721,9 +757,10 @@ function! ExecuteRecognizedFile()
    endif
 endfunction
 
-
-"  InputHistory <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" InputHistory ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Cycle trough command line history when in an input() command.
+"     input   - direction: [int] Which direction to travel in the input history
+"     returns - void
 function! InputHistory(direction) abort
     if (a:direction == 2)
        let g:input_hist_index = 0
@@ -734,8 +771,35 @@ function! InputHistory(direction) abort
     endif
 endfunction
 
-"  Javadoc ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" VimFunctionDoc ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Processes the current line and tries to interpret a function name and
+"          arguments and fills in a template for a function header.
+"    returns - void
+function! VimFunctionDoc()
+   let lineToProcess = [getline('.')]
+   call Chomp(lineToProcess, '\s\+function!\=\s\+')
+   let name = Chomp(lineToProcess, '\w\+\ze\s*(')
+   exe "normal! O\" \<Esc>39a<>"
+   exe 'normal! 0llR' . name . ' '
+   exe "normal! o\"   brief: \<Esc>ma"
+   let argument = Chomp(lineToProcess, '\s*(\s*\zs\w\+')
+   exe 'normal! o"     input   - void'
+   while (len(argument) > 0)
+      exe 'normal! 17|R'. argument .': [] '
+      exe 'normal! o"                '
+      let argument = Chomp(lineToProcess, '^\s*,\=\s*\zs\w\+')
+   endwhile
+   if (Chomp(lineToProcess, '^\s*\(,\|(\)\s*\zs\.\.\.') == '...')
+      exe "normal! 17|Roptional: [] \<Esc>o\"                "
+   endif
+   exe "normal! 7|Rreturns -  \<Esc>D"
+   normal! `a
+   startinsert!
+endfunction
+
+" Javadoc <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Generate javadoc template.
+"     returns - void
 function! Javadoc()
    let lineToProcess = [getline('.')]
    let returnType = Chomp(lineToProcess, '\w\+\ze\s\+\w\+\s*(')
@@ -775,12 +839,13 @@ function! Javadoc()
    startinsert!
 endfunction
 
-"  Chomp ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" Chomp <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: returns pattern match and discards string up to match
-"    input - stringAsList [[String]] A length one list that contains a String
-"               to macth against
-"            pattern [string] A regex string to match
+"    input   - stringAsList: [[String]] A length one list that contains a String
+"                            to match against
+"              pattern: [string] A regex string to match
 "    returns - The match from the pattern
+" TODO: Make more robust
 function! Chomp(stringAsList, pattern)
    let retVal = matchstr(a:stringAsList[0], a:pattern)
    call add(a:stringAsList, matchstr(a:stringAsList[0], retVal.'\zs.*'))
@@ -788,9 +853,10 @@ function! Chomp(stringAsList, pattern)
    return retVal
 endfunction
 
-"  BlockAutoIndent ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" BlockAutoIndent <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Automatically tries to indent current block and moves cursor relative
 "          to indent.
+"     returns - void
 function! BlockAutoIndent()
    normal ma
    let initialColumn = col('.')
@@ -804,9 +870,11 @@ function! BlockAutoIndent()
    endif
 endfunction
 
-"  NextQuickFix <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" NextQuickFix ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Moves in quickfix. If there are no errors, then try the location
 "          list instead.
+"     input   - optional: [bool] If present then it moves backwards
+"     returns - void
 function! NextQuickFix(...)
    try
       if (a:0 > 0)
@@ -825,9 +893,10 @@ function! NextQuickFix(...)
    endtry
 endfunction
 
-"  CycleTrhoughSpellSuggestion ><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: Try the next suggestion. If called again incraments and goes to next
+" CycleTrhoughSpellSuggestion <><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Try the next suggestion. If called again increments and goes to next
 "          item.
+"     returns - void
 function! CycleTrhoughSpellSuggestion()
    if (g:spellSuggestionCount != 1)
       undo
@@ -836,8 +905,9 @@ function! CycleTrhoughSpellSuggestion()
    let g:spellSuggestionCount += 1
 endfunction
 
-"  BringUpSpellSuggestionList <><><><><><><><><><><><><><><><><><><><><><><><><>
+" BringUpSpellSuggestionList ><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Handles some secondary functions to execute when bringing up the list.
+"     returns - void
 function! BringUpSpellSuggestionList()
    if (g:spellSuggestionCount != 1)
       undo
@@ -846,8 +916,9 @@ function! BringUpSpellSuggestionList()
    " z= doesn't work from inside function, had to extricate...
 endfunction
 
-"  LoadSession
+" LoadSession <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: If a previous vim session was saved, load it and delete it.
+"     returns - void
 function! LoadSession()
    if filereadable($HOME.'/vimfiles/Session.vim')
       source $HOME/vimfiles/Session.vim
@@ -855,8 +926,9 @@ function! LoadSession()
    endif
 endfunction
 
-"  ReplaceBadWhitespaceInDir ><><><><><><><><><><><><><><><><><><><><><><><><><>
+" ReplaceBadWhitespaceInDir <><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Replaces tabs and trailing whitespace in all files in a directory.
+"     returns - void
 function! ReplaceBadWhitespaceInDir()
    echohl ERROR
    call inputsave()
@@ -873,9 +945,10 @@ function! ReplaceBadWhitespaceInDir()
    endif
 endfunction
 
-"  OpenNewTabWithNetrw ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" OpenNewTabWithNetrw <><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Opens a new tab with netrw, pointing at previous file. Also enables
-"          cvs hilighting if that plugin is enabled.
+"          cvs highlighting if that plugin is enabled.
+"     returns - void
 function! OpenNewTabWithNetrw()
    let l:tmp = expand('%')
    Te
@@ -885,19 +958,28 @@ function! OpenNewTabWithNetrw()
    endif
 endfunction
 
-"  ParagraphToEightyChars <><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" ParagraphToEightyChars ><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: If the current line is > 80 chars then it will split the line on
 "          whitespace and then join the next line. It will keep doing this until
 "          it finds a line that is less than 80 chars long.
+"     returns - void
 function! ParagraphToEightyChars()
    while (len(getline(".")) > 80)
       normal! 0
       " Find the first white-space character before the 81st character.
       call search('\(\%81v.*\)\@<!\s\(.*\s.\{-}\%81v\)\@!', 'c', line('.'))
-      " Replace it with a new line.
-      exe "normal! r\<CR>"
-      " If the next line has words, join it to avoid weird paragraph breaks.
-      if (getline(line('.')+1) =~ '\w')
+      " Replace it with a new line if the word itself isn't longer than 80
+      " chars. (If it is, it's a lost cause. We can't properly break up the
+      " line so just give up.)
+      if (len(expand('<cWORD>')) < 80)
+         exe "normal! r\<CR>"
+      else
+         break
+      endif
+      " If the next line has words and is part of a comment block, then join it
+      " to avoid weird paragraph breaks.
+      let nextLine = line('.')+1
+      if ((getline(line('.')+1) =~ '\w') && (synIDattr(synID(nextLine, len(getline(nextLine)), 0), "name") =~ 'comment\c\|^$'))
          normal! J
       endif
    endwhile
@@ -905,6 +987,8 @@ function! ParagraphToEightyChars()
    :s/\s\+$//e
 endfunction
 "<
+
+let g:Tumbler_vimrc = 1
 
 "> Tips and Tricks <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 
@@ -934,7 +1018,6 @@ endfunction
 " {Insert}<C-y>   - Copies text one line above.
 
 " Alt combos that haven't been mapped yet:
-"  <A-a>
 "  <A-/>
 
 " Vimscript tips
