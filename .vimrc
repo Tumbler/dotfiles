@@ -244,7 +244,8 @@ inoremap <C-p> <C-r>"
 vnoremap J j
 vnoremap K k
 
-nnoremap <silent><A-J> :call ParagraphToEightyChars()<CR>
+nnoremap <silent><A-J><A-J> :call ParagraphToEightyChars()<CR>
+nnoremap <silent><A-J><A-K> :call ParagraphToEightyChars(1)<CR>
 nnoremap <silent>J maJ`a
 " Keep the cursor in the same place when doing a Join
 
@@ -373,6 +374,8 @@ inoremap {{ {<Enter>}<Esc>O
 " Auto puts closing brace and indents you to the right place automatically
 nnoremap <A-z>   za
 " Toggles current fold (It doesn't seem like much of a shortcut but za is really hard to hit)
+nnoremap <A-/> :!start gvim<CR>
+" Opens another gVim instance
 
 " Vimgrep
 nnoremap <A-8>   :call ProjectVimGrep('\<'.expand('<cword>').'\>')<CR>
@@ -962,24 +965,61 @@ endfunction
 "   brief: If the current line is > 80 chars then it will split the line on
 "          whitespace and then join the next line. It will keep doing this until
 "          it finds a line that is less than 80 chars long.
+"     input   - optional: [bool] If present and true, will never join the next
+"                         line. Useful if you only have one line of text that
+"                         you don't want to run into the next line
 "     returns - void
-function! ParagraphToEightyChars()
-   while (len(getline(".")) > 80)
+function! ParagraphToEightyChars(...)
+   let commentHeader = matchstr(getline('.'), '^\s*\zs\(//\|"\|#\|\)\ze\s\=')
+   let cursorCol = col('.')
+   if (cursorCol >= 75)
+      if (len(commentHeader) > 0)
+         normal! ^w
+      else
+         normal! ^
+      endif
+      let cursorCol = col('.')
+   elseif (getline('.')[:col('.')-1] =~ '^\s*\(//\|"\|#\|\)\s\+$')
+      normal! dw
+   endif
+   while (len(getline('.')) > 80)
       normal! 0
       " Find the first white-space character before the 81st character.
-      call search('\(\%81v.*\)\@<!\s\(.*\s.\{-}\%81v\)\@!', 'c', line('.'))
+      call search('\(\%81v.*\)\@<!\s\+\(.*\s.\{-}\%81v\)\@!', 'c', line('.'))
       " Replace it with a new line if the word itself isn't longer than 80
       " chars. (If it is, it's a lost cause. We can't properly break up the
       " line so just give up.)
-      if (len(expand('<cWORD>')) < 80)
+      let cWORD = expand('<cWORD>')
+      if (len(cWORD) < (80 - cursorCol) && len(cWORD) > 0)
          exe "normal! r\<CR>"
+         :s/\s\+$//e
+         " Start the line on the same line that the cursor started on
+         if !(len(commentHeader) == 0 && cursorCol == 1)
+            normal! w
+         endif
+         " There's an edge case where if you start with no comment header and
+         " the first character(s) on a line happens to match a comment header it
+         " will trick formatoptions into putting headers. This while loop makes
+         " sure that if you started with no commend headers, it will stay that
+         " way.
+         while (col('.') > cursorCol && !len(commentHeader))
+            normal! hx
+         endwhile
+         " Formatoptions always uses the first \w to line up to. Sometimes you
+         " don't want this, so it will now align it to your initial cursor
+         " position.
+         if (cursorCol < 75 && cursorCol != col('.'))
+            exe "normal! i" . repeat(' ', cursorCol - col('.'))
+         endif
       else
          break
       endif
       " If the next line has words and is part of a comment block, then join it
       " to avoid weird paragraph breaks.
       let nextLine = line('.')+1
-      if ((getline(line('.')+1) =~ '\w') && (synIDattr(synID(nextLine, len(getline(nextLine)), 0), "name") =~ 'comment\c\|^$'))
+      if ((getline(line('.')+1) =~ '\w') &&
+       \ (synIDattr(synID(nextLine, len(getline(nextLine)), 0), "name") =~ 'comment\c\|^$')) &&
+       \ (!a:0 || !a:1)
          normal! J
       endif
    endwhile
@@ -1016,9 +1056,6 @@ let g:Tumbler_vimrc = 1
 " gu/U{direction} - Make {direction} text lowercase/uppercase.
 " "3p             - Paste from 3 edits ago (works with 1 to 9)
 " {Insert}<C-y>   - Copies text one line above.
-
-" Alt combos that haven't been mapped yet:
-"  <A-/>
 
 " Vimscript tips
 
