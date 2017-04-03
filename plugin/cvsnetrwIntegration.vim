@@ -6,6 +6,11 @@
 " Note: This plugin is merely an extension to the "cvsmenu" plugin. It will
 "   not work without it! You can find it here:
 "   http://www.vim.org/scripts/script.php?script_id=58
+" TODO: Colors for dirs seem inconsistant... (Fixed once such issue. Keeping an eye out for others...)
+" TODO: Colors might be taking too much time. See if we can make that any better.
+" TODO: Community plugin standards
+" TODO: EchoError
+" TODO: Cach hilighting for faster response?? (Like I do in dirDiff)
 
 let g:cvsnetrwIntegration = 1
 
@@ -34,7 +39,7 @@ let s:CVSstatusPath = $HOME.'/vimfiles/cvs'
 " ReturnCVSstatusFile <><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Generates appropriate unique file names using the path of the dir.
 "     input  - [string] The full path of the directory that the file revised in.
-"              [string] The type of file we want to generate (Tmp or cvs).
+"              [string] The type of file we want to generate (tmp or cvs).
 "    returns - [string] The name of the unique file name.
 function! ReturnCVSstatusFile(inputDir, type)
    if (a:type == 'cvs')
@@ -114,13 +119,15 @@ function! UpdateCVSHilighting()
       if (&filetype == 'netrw')
          let i = 3
          " Skip ../ and ./
-         while (i < line('$'))
+         while (i <= line('$'))
             let currentLine = getline(i)
             " Check if we're looking at a directory
             if (currentLine =~ '.*/$')
                if (CVSstatusFileExists('./'.currentLine, 'cvs'))
                   let innerMod = readfile(ReturnCVSstatusFile('./'.currentLine, 'cvs'), '', 1)
                   if (innerMod[0] =~ '>>MOD<<')
+                     " If innerMod[0] has a shorter distance to a modfied file
+                     " record the shorter one.
                      if (len(innerMod[0]) < len(innerModSave) || innerModSave == '')
                         let innerModSave = innerMod[0]
                      endif
