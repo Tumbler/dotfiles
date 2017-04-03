@@ -2,7 +2,15 @@
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 03/29/2017 04:35 PM
-let s:Version = 2.01
+let s:Version = 2.02
+
+" TODO: Add filler. See: 'diffopt'
+"       IDEA! Just use :diffthis in the buffer creation. There is currently at
+"       least one bug with this implementation. Getting a "empty buffer" error
+"       asdf asdf asdf asdf asdf when backing out of singles for some reason.
+"       (The buffer totally exists.)
+"       Maybe just use :diffthis in sorting mode 3??
+" TODO: Add copying of files/dirs (essentially dp and do)
 
 " Anti-inclusion guard and version
 if (exists("g:loaded_baseConverter") && (g:loaded_baseConverter >= s:Version))
@@ -35,8 +43,8 @@ let s:uniqueID = 0
 let s:sortDirs = [[], []]
 
 " DirDiff <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: Diffs two directories and allows you to quickly jump between different
-"          files in the dirs.
+"   brief: Diffs two directories and allows you to quickly jump between
+"          different files in the dirs.
 "     input   - optional: [bool] When present opens diff with first dir on left.
 "                         Opens on right otherwise.
 "     returns - void
@@ -373,7 +381,7 @@ endfunction
 "               window: [int] Which window we're mapping
 "               optional: [bool] If present the function will instead set up
 "                         autocommands that will set up the mappings once the
-"                         buffer is entered. This is required because we cannot
+"                         buffer is loaded. This is required because we cannot
 "                         setup mappings to a buffer that is not active, but we
 "                         CAN set up autocommands in inactive buffers.
 "     returns - void
@@ -1123,11 +1131,10 @@ function! s:CompareDirectories(sortOrder, dir1, dir2, mustFinish)
       " soon as possible if they're not equivalent).
       let retVal = 1
       let firstUniquePosition = 0
-      let secondUniquePosition = 0
       for one in a:dir1.files
          let loopCounter = 0
          let UniqueFlag = 1
-         for two in a:dir2.files
+         for two in a:sortOrder.secondUnique
             if (one == two)
                let UniqueFlag = 0
                let firstFile = readfile(a:dir1.path . one, 'b')
@@ -1144,9 +1151,8 @@ function! s:CompareDirectories(sortOrder, dir1, dir2, mustFinish)
                endif
                call add(a:sortOrder.Common, one)
                call remove(a:sortOrder.firstUnique, firstUniquePosition)
-               call remove(a:sortOrder.secondUnique, loopCounter - secondUniquePosition)
+               call remove(a:sortOrder.secondUnique, loopCounter)
                let firstUniquePosition -= 1
-               let secondUniquePosition += 1
                break
                " Unique starts with all itmes. Whenever we find one that
                "   matches we add it to the common list and remove it
@@ -1175,14 +1181,13 @@ function! s:CompareDirectories(sortOrder, dir1, dir2, mustFinish)
 
       " Compare directories in path
       let firstUniquePosition = 0
-      let secondUniquePosition = 0
       for one in keys(a:dir1.dirs)
          let loopCounter = 0
          if (!has_key(a:sortOrder.dirs, one))
             let a:sortOrder.dirs[one] = {}
          endif
          let UniqueFlag = 1
-         for two in keys(a:dir2.dirs)
+         for two in a:sortOrder.secondUniqueDir
             if (one == two)
                let UniqueFlag = 0
                if <SID>CompareDirectories(a:sortOrder.dirs[one], a:dir1.dirs[one], a:dir2.dirs[two], 0)
@@ -1197,9 +1202,8 @@ function! s:CompareDirectories(sortOrder, dir1, dir2, mustFinish)
                endif
                call add(a:sortOrder.CommonDir, one)
                call remove(a:sortOrder.firstUniqueDir, firstUniquePosition)
-               call remove(a:sortOrder.secondUniqueDir, loopCounter - secondUniquePosition)
+               call remove(a:sortOrder.secondUniqueDir, loopCounter)
                let firstUniquePosition -= 1
-               let secondUniquePosition += 1
                break
                " Unique starts with all itmes. Whenever we find one that
                "   matches we add it to the common list and remove it
@@ -1225,6 +1229,14 @@ function! s:CompareDirectories(sortOrder, dir1, dir2, mustFinish)
             let retVal = 0
          endif
       endif
+
+      " Make sure all the directories are in order. (Since they came from a
+      " dictionary, there's no telling what order they're in.)
+      call sort(a:sortOrder.CommonDir, 1)
+      call sort(a:sortOrder.CommonSameDir, 1)
+      call sort(a:sortOrder.CommonDiffDir, 1)
+      call sort(a:sortOrder.firstUniqueDir, 1)
+      call sort(a:sortOrder.secondUniqueDir, 1)
 
       let a:sortOrder.Sorted = [a:sortOrder.CommonDir + a:sortOrder.firstUniqueDir + a:sortOrder.Common + a:sortOrder.firstUnique,
                               \ a:sortOrder.CommonDir + a:sortOrder.secondUniqueDir + a:sortOrder.Common + a:sortOrder.secondUnique]
