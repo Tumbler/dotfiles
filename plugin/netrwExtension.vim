@@ -4,6 +4,9 @@
 " Last Edited: 12/13/2016 03:01 PM
 " Version: 1.3
 
+" TODO: Community plugin standards
+" TODO: EchoError
+
 let g:netrwExtension = 1
 
 let g:vimpathmemFile = $HOME.'/vimfiles/.vimpathmem'
@@ -45,6 +48,9 @@ endif
 
 "  SmartExplore <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Opens explorer pointing at file or dir we just came out of.
+" TODO: Seems to be missing files sometimes and instead going to top of file...
+" TODO: Figured it out! When you back out of a file but your pwd isn't the same
+" as the file your editing, this will cause it to miss the reposition.
 function! SmartExplore(origin)
    " If we're in a diff, then close the other window before continuing
    if (&diff)
@@ -54,7 +60,7 @@ function! SmartExplore(origin)
          quit
       endif
    endif
-   if (&modified)
+   if (&modified && winnr('$') == 1)
       call EchoError("Save changes first!")
       return
    endif
@@ -83,8 +89,8 @@ function! SmartExplore(origin)
       else
          let l:currentFilename = @%
       endif
+      call SyncDirs()
       if (a:origin == 'netrw')
-         call SyncDirs()
          if !(s:User_autoread)
             set autoread
             call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
@@ -117,6 +123,7 @@ endfunction
 "   brief: Explores to file or dir under cursor, centers the screen and saves
 "          the choice so we can remember it next time we're here.
 function! SmartInspect()
+   " TODO: Brakes when it tries to edit a file with and unescaped '%' in the name
    " Grabs line up to the first tab
    let file = matchstr(getline('.'), '^[^\t]*')
    call AddToPathList(file)
@@ -159,7 +166,12 @@ function! ManualExplore(dir)
 endfunction
 
 function! SyncDirs()
-   exe "cd " . b:netrw_curdir
+   if (&ft == 'netrw')
+      exe "cd " . b:netrw_curdir
+   else
+      let b:netrw_curdir = expand('%:p:h')
+      exe "cd " . expand('%:p:h')
+   endif
 endfunction
 
 "  AddToPathList ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
