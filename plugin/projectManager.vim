@@ -1,16 +1,14 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/02/2017 10:50 AM
-" Version: 2.0.0
+" Last Edited: 06/29/2017 02:36 PM
+" Version: 2.01 <- This version number hasn't been uploaded yet. Use this one!
 
-" TODO: Might want to make it possible to have a two relative directories with
-"       the same name
 " TODO: Community plugin standards
 
 let g:vimProjectManager = 1
 
-let s:ProjectManagerCommands = ["activate", "add", "blarg", "delete", "help", "new", "newrel", "main", "quit", "remove", "rename", "select", "view"]
+let s:ProjectManagerCommands = ["activate", "add", "blarg", "delete", "exclude", "help", "new", "newrel", "optional", "main", "quit", "remove", "rename", "select", "view"]
    " A list of commands that the ExecuteCommand() function can handle
 let s:projectFile = $HOME.'/vimfiles/.projects'
    " The file that stores the project information across multiple sessions
@@ -30,6 +28,10 @@ command! -nargs=1 -complete=custom,ProjectCompletion ProjSelect call ExecuteComm
 " Selects a project so you don't have to go into the manager
 command! -nargs=1 -complete=tag DirectorySearch :call DirSearch('<args>')
 " Brings up the Directory Search Prompt (See DirSearch)
+command! -nargs=1 -complete=tag Tag :call <SID>Tag('<args>')
+" Just does a :tag, but makes sure to setlocal tags= first.
+cabbrev tag Tag
+" Makes regular tag calls use our version of tag.
 
 " Allows you to set your own key combo if you want to
 if (exists('g:DirSearchKeyCombo'))
@@ -46,7 +48,9 @@ endif
 "                Project
 "                   .type     " The character 'N' or 'R' (normal or relative)
 "                   .dirs     " A list of directories that are in the project
+"                   .optional " A list of directories that are in the project but are optional
 "                   .name     " The name and key of the project
+"                   .exclude  " A list of files to exclude from searches
 "                and the absolute path to the root directory of the project as a string
 function! ReturnProject(input)
    if has_key(g:ProjectManager, a:input)
@@ -58,7 +62,7 @@ function! ReturnProject(input)
       " Rectify Windows directory types
       let projectList = {}
       for key in keys(g:ProjectManager)
-         for dir in copy(g:ProjectManager[key]["dirs"])
+         for dir in copy(ReturnProjectDirectories(key))
             if (dir == filename)
                let projectList[key] = g:ProjectManager[key]
                break
@@ -103,7 +107,7 @@ function! ReturnProject(input)
             let projects[project] = g:ProjectManager[project]
             let projects[project].keyMatch = '.'
          else
-            for directory in g:ProjectManager[project]['dirs'][1:]
+            for directory in (ReturnProjectDirectories(project))[1:]
                " Strip out any leading "../"
                let restOfDir = matchstr(directory, '\(/\)\@<=[^.].*')
                if (input =~ restOfDir.'$')
@@ -143,7 +147,7 @@ function! ReturnProject(input)
 
    exe "cd ".originalDir
    " No form of matching worked, return blank.
-   return [{"type": '', "dirs":[], "name": ''}, '']
+   return [{"type": '', "dirs":[], "optional":[], "name": '', "excludes":[]}, '']
 endfunction
 
 " ReturnAbsoluteRoot ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -208,7 +212,14 @@ endfunction
 
 " ReturnProjectDirectories ><><><><><><><><><><><><><><><><><><><><><><><><><><>
 function! ReturnProjectDirectories(input)
-   return ReturnProject(a:input)[0].dirs
+   let project = copy(ReturnProject(a:input)[0])
+   let dirs = copy(project.dirs)
+   for dir in project.optional
+      if isdirectory(dir)
+         call add(dirs, dir)
+      endif
+   endfor
+   return dirs
 endfunction
 
 " Project <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -228,7 +239,7 @@ function! Project()
                          \ "(3) Remove a project or directory from a project\n" .
                          \ "(4) Create a new absolute project\n" .
                          \ "(5) Create a new relative project\n" .
-                         \ "(You can also just type commands. Type \"help\" for a list of commands)\n\n", "", "custom,ProjectCompletion")
+                         \ "(You can also just type commands. Type \"help\" for a list of commands)\n\n", "", "custom,CommandProjectHybridCompletion")
       let l:argumentlist = split(choice)
       if len(argumentlist) < 1
          echo "\n"
@@ -264,13 +275,13 @@ function! Project()
 endfunction
 
 " ParseChoice <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: Finds commands or projects that user input matches. Exact matches will
-"          take precedence. If there are multiple partial matches, a list
+"   brief: Finds commands or projects that user input matches. Exact matches
+"          will take precedence. If there are multiple partial matches, a list
 "          will be returned instead.
 "     input   - choice: [string] User input to match to
 "               commandFlag: [bool] False: won't take commands into account when
 "                           matching
-"     returns - [string[]] a list of matching commands or projects
+"     returns - [string[]] a list of matching commands or project names
 function! ParseChoice(choice, commandFlag)
    let l:matches = []
    if a:commandFlag
@@ -311,7 +322,7 @@ endfunction
 "          return a match only if there is exactly one match
 "     input   - partialProject: [string] Typically user input to try to match to
 "                             an existing project
-"     returns - [string] either the matched project or the original input
+"     returns - [string] either the matched project name or the original input
 function! FillProject(partialProject)
    let project = a:partialProject
    let projectMatches = ParseChoice(project, 0)
@@ -329,6 +340,10 @@ endfunction
 "                        the command
 "     returns - [bool] True: a signal to exit the main loop
 function! ExecuteCommand(command, options)
+   " Note: I'm well aware that this function has a lot of duplicate code and
+   " could be made to be many fewer lines. However, I tried converting it one
+   " time, and the resulting code is incredibly unreadable. Therefore, for the
+   " sake of readability (and my sanity) I've opted to leave it this way.
    let command = tolower(a:command)
    if     (command == "quit") " ------------ quit
       call SaveProject()
@@ -340,21 +355,25 @@ function! ExecuteCommand(command, options)
 
    elseif (command == "help") " ------------ help
       call ClearScreen()
-      echo "add    [project] [first_dir_to_add] ..."
+      echo "add      [project] [first_dir_to_add] ..."
       echo "    Add at 1 or more dirs to a project"
-      echo "delete [project] [first_dir_to_delete] ..."
+      echo "delete   [project] [first_dir_to_delete] ..."
       echo "    Deletes a project or directory from a project"
+      echo "exclude  [project] [file_to_exclude] ..."
+      echo "    Adds exclusion rule to project"
       echo "help"
       echo "    This help message"
-      echo "new    [project] [first_dir_to_add] ..."
-      echo "    Create a new project and add dirs to it"
-      echo "newrel [project] [first_dir_to_add] ..."
-      echo "    Create a new relative project and add dirs to it"
-      echo "main   [project] [dir-to_make_main]"
+      echo "main     [project] [dir_to_make_main]"
       echo "    Change the main dir in a project"
-      echo "remove [project] [first_dir_to_remove] ..."
+      echo "new      [project] [first_dir_to_add] ..."
+      echo "    Create a new project and add dirs to it"
+      echo "newrel   [project] [first_dir_to_add] ..."
+      echo "    Create a new relative project and add dirs to it"
+      echo "optional [project] [dir_to_make_optional]"
+      echo "    Change a directory to be optional"
+      echo "remove   [project] [first_dir_to_remove] ..."
       echo "    Removes a project or directory from a project"
-      echo "rename [project] [new_name]"
+      echo "rename   [project] [new_name]"
       echo "    Renames a project"
       echo "quit"
       echo "    Exit project manager"
@@ -368,16 +387,28 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "N"
             let g:ProjectManager[project]["dirs"] = []
+            let g:ProjectManager[project]["optional"] = []
+            let g:ProjectManager[project]["excludes"] = []
             let s:activeProject = project
          else
             call <SID>EchoError(project . " already exists in project manager!")
             return 0
          endif
          let dir = ""
+         let state = 1
          while (dir != "q")
-            let dir = input("\nWhat directory do you want to add? (q to quit)\n", "", "dir")
-            echo "\n"
-            call AddDirectory(project, dir, "N")
+            if (dir == 'e')
+               let state = !state
+            endif
+            if (state)
+               let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
+               echo "\n"
+               call AddDirectory(project, dir, "N")
+            else
+               let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
+               echo "\n"
+               call AddExclusion(project, dir, "N")
+            endif
          endwhile
          call PrintProject(project, 0)
       elseif len(a:options) == 1
@@ -386,16 +417,28 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "N"
             let g:ProjectManager[project]["dirs"] = []
+            let g:ProjectManager[project]["optional"] = []
+            let g:ProjectManager[project]["excludes"] = []
             let s:activeProject = project
          else
             call <SID>EchoError(project . " already exists in project manager!")
             return 0
          endif
          let dir = ""
+         let state = 1
          while (dir != "q")
-            let dir = input("\nWhat directory do you want to add? (q to quit)\n", "", "dir")
-            echo "\n"
-            call AddDirectory(project, dir, "N")
+            if (dir == 'e')
+               let state = !state
+            endif
+            if (state)
+               let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
+               echo "\n"
+               call AddDirectory(project, dir, "N")
+            else
+               let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
+               echo "\n"
+               call AddExclusion(project, dir, "N")
+            endif
          endwhile
          call PrintProject(project, 0)
       elseif len(a:options) > 1
@@ -404,6 +447,8 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "N"
             let g:ProjectManager[project]["dirs"] = []
+            let g:ProjectManager[project]["optional"] = []
+            let g:ProjectManager[project]["excludes"] = []
             let s:activeProject = project
          else
             call <SID>EchoError(project . " already exists in project manager!")
@@ -422,6 +467,8 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "R"
             let g:ProjectManager[project]["dirs"] = []
+            let g:ProjectManager[project]["optional"] = []
+            let g:ProjectManager[project]["excludes"] = []
             let s:activeProject = project
          else
             call <SID>EchoError(project . " already exists in project manager!")
@@ -429,10 +476,20 @@ function! ExecuteCommand(command, options)
          endif
          call AddDirectory(project, '.', "R")
          let dir = ""
+         let state = 1
          while (dir != "q")
-            let dir = input("\nWhat directory do you want to add? (q to quit)\n", "", "dir")
-            echo "\n"
-            call AddDirectory(project, dir, "R")
+            if (dir == 'e')
+               let state = !state
+            endif
+            if (state)
+               let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
+               echo "\n"
+               call AddDirectory(project, dir, "R")
+            else
+               let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
+               echo "\n"
+               call AddExclusion(project, dir, "R")
+            endif
          endwhile
          call PrintProject(project, 0)
       elseif len(a:options) == 1
@@ -442,6 +499,8 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "R"
             let g:ProjectManager[project]["dirs"] = []
+            let g:ProjectManager[project]["optional"] = []
+            let g:ProjectManager[project]["excludes"] = []
             let s:activeProject = project
          else
             call <SID>EchoError(project . " already exists in project manager!")
@@ -449,10 +508,20 @@ function! ExecuteCommand(command, options)
          endif
          call AddDirectory(project, '.', "R")
          let dir = ""
+         let state = 1
          while (dir != "q")
-            let dir = input("\nWhat directory do you want to add? (q to quit)\n", "", "dir")
-            echo "\n"
-            call AddDirectory(project, dir, "R")
+            if (dir == 'e')
+               let state = !state
+            endif
+            if (state)
+               let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
+               echo "\n"
+               call AddDirectory(project, dir, "R")
+            else
+               let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
+               echo "\n"
+               call AddExclusion(project, dir, "R")
+            endif
          endwhile
          call PrintProject(project, 0)
       elseif len(a:options) > 1
@@ -462,6 +531,8 @@ function! ExecuteCommand(command, options)
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "R"
             let g:ProjectManager[project]["dirs"] = []
+            let g:ProjectManager[project]["optional"] = []
+            let g:ProjectManager[project]["excludes"] = []
             let s:activeProject = project
          else
             call <SID>EchoError(project . " already exists in project manager!")
@@ -479,10 +550,20 @@ function! ExecuteCommand(command, options)
          if has_key(g:ProjectManager, project)
             let s:activeProject = project
             let dir = ""
+            let state = 1
             while (dir != "q")
-               let dir = input("\nWhat directory do you want to add? (q to quit)\n", "", "dir")
-               echo "\n"
-               call AddDirectory(project, dir, g:ProjectManager[project]["type"])
+               if (dir == 'e')
+                  let state = !state
+               endif
+               if (state)
+                  let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
+                  echo "\n"
+                  call AddDirectory(project, dir, g:ProjectManager[project].type)
+               else
+                  let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
+                  echo "\n"
+                  call AddExclusion(project, dir, g:ProjectManager[project].type)
+               endif
             endwhile
          else
             call <SID>EchoError(project . " project does not exist! Did you mean new?\n\n")
@@ -495,9 +576,20 @@ function! ExecuteCommand(command, options)
             let s:activeProject = project
             call ClearScreen()
             let dir = ""
+            let state = 1
             while (dir != "q")
-               let dir = input("What directory do you want to add? (q to quit)\n", "", "dir")
-               call AddDirectory(project, dir, g:ProjectManager[project]["type"])
+               if (dir == 'e')
+                  let state = !state
+               endif
+               if (state)
+                  let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
+                  echo "\n"
+                  call AddDirectory(project, dir, g:ProjectManager[project].type)
+               else
+                  let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
+                  echo "\n"
+                  call AddExclusion(project, dir, g:ProjectManager[project].type)
+               endif
             endwhile
          else
             call ClearScreen()
@@ -550,13 +642,18 @@ function! ExecuteCommand(command, options)
                let s:activeProject = project
                call PrintProject(project, 1)
                let choice = input("Which directory? (#) ")
-               while (choice > len(g:ProjectManager[project]["dirs"]))
+               while (choice > len(g:ProjectManager[project]["dirs"]) + len(g:ProjectManager[project]["excludes"]))
                   normal \<Esc>
                   let choice = input("Which directory? (#) ")
                endwhile
                echo "\n"
-               echo g:ProjectManager[project]["dirs"][choice-1] . " removed!"
-               call remove(g:ProjectManager[project]["dirs"], choice - 1)
+               let key = "dirs"
+               if (choice > len(g:ProjectManager[project]["dirs"]))
+                  let choice -= len(g:ProjectManager[project]["dirs"])
+                  let key = "excludes"
+               endif
+               echo g:ProjectManager[project][key][choice-1] . " removed!"
+               call remove(g:ProjectManager[project][key], choice - 1)
                call PrintProject(project, 0)
             else
                call <SID>EchoError(project . " does not exist!")
@@ -585,7 +682,11 @@ function! ExecuteCommand(command, options)
             let s:activeProject = project
             for dir in a:options[1:]
                let safeDir = ExpandDir(dir, 0)
-               call filter(g:ProjectManager[project]["dirs"], 'v:val !~ "' . safeDir . '"')
+               if index(g:ProjectManager[project]["dirs"], safeDir)
+                  call filter(g:ProjectManager[project]["dirs"], 'v:val !~ "' . safeDir . '"')
+               else
+                  call filter(g:ProjectManager[project]["excludes"], 'v:val !~ "' . fnnamemodify(dir, ':p') . '"')
+               endif
             endfor
             call ClearScreen()
             call PrintProject(project, 0)
@@ -728,6 +829,114 @@ function! ExecuteCommand(command, options)
          else
          endif
       endif
+
+   elseif (command == "exclude") " ------------ exclude
+      if len(a:options) == 0
+         let project = GetProject()
+         if has_key(g:ProjectManager, project)
+            let s:activeProject = project
+            call PrintProject(project, 0)
+            let file = ""
+            while (file != "q")
+               let file = input("\nWhat file do you want to exclude? (q to quit)\n", "", "file")
+               echo "\n"
+               call AddExclusion(project, file, g:ProjectManager[project].type)
+            endwhile
+         else
+            call <SID>EchoError(project . " project does not exist!\n\n")
+            return 0
+         endif
+         call PrintProject(project, 0)
+      elseif len(a:options) == 1
+         let project = FillProject(a:options[0])
+         if has_key(g:ProjectManager, project)
+            let s:activeProject = project
+            call ClearScreen()
+            call PrintProject(project, 0)
+            let file = ""
+            let file = input("\nWhat file do you want to exclude? (q to quit)\n", "", "file")
+            echo "\n"
+            if (file != "q")
+               call AddExclusion(project, file, g:ProjectManager[project].type)
+            endif
+         else
+            call ClearScreen()
+            call <SID>EchoError(project . " project does not exist!")
+            return 0
+         endif
+      elseif len(a:options) > 1
+         let project = FillProject(a:options[0])
+         if has_key(g:ProjectManager, project)
+            let s:activeProject = project
+            for file in a:options[1:]
+               call AddExclusion(project, file, g:ProjectManager[project].type)
+            endfor
+         else
+            call ClearScreen()
+            call <SID>EchoError(project . " project does not exist!\n\n")
+            return 0
+         endif
+         call PrintProject(project, 0)
+      endif
+      return 0
+
+   elseif (command == "optional") " ------------ optional
+      if len(a:options) == 0
+         let project = GetProject()
+         if has_key(g:ProjectManager, project)
+            echo "\n"
+            while (1)
+               call PrintProject(project, 3)
+               let choice = input("Which directory do you want to toggle as optional? (q to quit) (#) ")
+               echo "\n"
+               let lenOfDirs = len(g:ProjectManager[project]["dirs"])
+               while (choice > (lenOfDirs + len(g:ProjectManager[project]["optional"])) || choice < 1 || choice == 'q')
+                  if (choice == 'q')
+                     return 0
+                  endif
+                  normal \<Esc>
+                  let choice = input("Invalid Choice\nWhich directory do you want to toggle as the optional? (q to quit) (#) ")
+               endwhile
+               if (choice <= lenOfDirs)
+                  call add(g:ProjectManager[project]["optional"], remove(g:ProjectManager[project]["dirs"], choice-1))
+               else
+                  call add(g:ProjectManager[project]["dirs"], remove(g:ProjectManager[project]["optional"], choice-lenOfDirs-1))
+               endif
+               let s:activeProject = project
+            endwhile
+            call PrintProject(project, 0)
+         else
+            call <SID>EchoError(project . " does not exist!")
+         endif
+      elseif len(a:options) >= 1
+         let project = FillProject(a:options[0])
+         if has_key(g:ProjectManager, project)
+            while (1)
+               call PrintProject(project, 3)
+               let choice = input("Which directory do you want to toggle as optional? (q to quit) (#) ")
+               echo "\n"
+               let lenOfDirs = len(g:ProjectManager[project]["dirs"])
+               while (choice > (lenOfDirs + len(g:ProjectManager[project]["optional"])) || choice < 1 || choice == 'q')
+                  if (choice == 'q')
+                     return 0
+                  endif
+                  normal \<Esc>
+                  let choice = input("Invalid Choice\nWhich directory do you want to toggle as the optional? (q to quit) (#) ")
+               endwhile
+               if (choice <= lenOfDirs)
+                  call add(g:ProjectManager[project]["optional"], remove(g:ProjectManager[project]["dirs"], choice-1))
+               else
+                  call add(g:ProjectManager[project]["dirs"], remove(g:ProjectManager[project]["optional"], choice-lenOfDirs-1))
+               endif
+               let s:activeProject = project
+            endwhile
+            call PrintProject(project, 0)
+         else
+            call <SID>EchoError(project . " does not exist!")
+         endif
+         " TODO Add the thrid case here (len(a:options) == 2) if you feel like (Hint: I don't).
+      endif
+
    endif
 endfunction
 
@@ -780,10 +989,39 @@ function! AddDirectory(project, dir, relative)
          echohl NORMAL
       endif
       return 1
-   elseif (a:dir != "q")
+   elseif (a:dir != 'q' && a:dir != 'e')
       echohl ERROR
       echo "\n"
       echo a:dir . " directory doesn't exist!\n"
+      echohl NORMAL
+      return -1
+   endif
+   return 0
+endfunction
+
+function! AddExclusion(project, file, relative)
+   if filereadable(a:file)
+      if (a:relative == "R")
+         let expandedDir = a:file
+      else
+         let expandedDir = fnamemodify(a:file, ':p')
+      endif
+
+      if !count(g:ProjectManager[a:project]["excludes"], expandedDir) "Make sure it doesn't already exist
+         call add(g:ProjectManager[a:project]["excludes"], expandedDir)
+         echo "\n" expandedDir . " added!"
+      else
+         echo "\n"
+         echohl ERROR
+         echon expandedDir . " already exists in project "
+         echon a:project . "!"
+         echohl NORMAL
+      endif
+      return 1
+   elseif (a:file != 'q' && a:file != 'e')
+      echohl ERROR
+      echo "\n"
+      echo a:file . " file doesn't exist!\n"
       echohl NORMAL
       return -1
    endif
@@ -797,11 +1035,13 @@ endfunction
 "             option: - [int] 0: normal operation
 "                             1: print numbers before dirs
 "                             2: omit dirs in print
+"                             3: like 1, but omit excludes
 "             returns - void
 function! PrintProject(inputProject, option)
    silent! call ClearScreen()
    let l:projectList = []
    if a:inputProject == "@||"
+      echo "\n"
       let l:projectList = sort(keys(g:ProjectManager))
    else
       if has_key(g:ProjectManager, a:inputProject)
@@ -819,10 +1059,27 @@ function! PrintProject(inputProject, option)
          echo project . ":\n"
       endif
       if a:option != 2
+         hi projectManagerDirs     cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
+         hi projectManagerOptional cterm=NONE ctermbg=bg ctermfg=116 gui=NONE guibg=bg guifg=SkyBlue
+         hi projectManagerExcludes cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
+         echohl projectManagerDirs
          for dir in copy(g:ProjectManager[project]["dirs"])
-            echo "\t" . (a:option == 1? "(" . counter . ")" : "") dir . "\n"
+            echo "        " . (a:option == 1? "(" . counter . ")" : "") . dir ."\n"
             let counter += 1
          endfor
+         echohl projectManagerOptional
+         for file in copy(g:ProjectManager[project]["optional"])
+            echo " (optl) " . (and(a:option, 1) == 1? "(" . counter . ")" : "") . file ."\n"
+            let counter += 1
+         endfor
+         if (a:option != 3)
+            echohl projectManagerExcludes
+            for file in copy(g:ProjectManager[project]["excludes"])
+               echo " (excl) " . (and(a:option, 1) == 1? "(" . counter . ")" : "") . file ."\n"
+               let counter += 1
+            endfor
+         endif
+         echohl NORMAL
       endif
    endfor
    echo "\n"
@@ -847,7 +1104,13 @@ function! SaveProject()
    for project in sort(keys(g:ProjectManager))
       call add(mySaveList, project." ".g:ProjectManager[project]["type"])
       for dir in copy(g:ProjectManager[project]["dirs"])
-         call add(l:mySaveList, "\t" . dir)
+         call add(l:mySaveList, "\tD " . dir)
+      endfor
+      for dir in copy(g:ProjectManager[project]["optional"])
+         call add(l:mySaveList, "\tO " . dir)
+      endfor
+      for exclude in copy(g:ProjectManager[project]["excludes"])
+         call add(l:mySaveList, "\tE " . exclude)
       endfor
    endfor
    call writefile(l:mySaveList, s:projectFile)
@@ -865,14 +1128,26 @@ function! LoadProject()
    if filereadable(s:projectFile)
       let l:mySaveList = readfile(s:projectFile)
       for line in l:mySaveList
-         if (split(line, '\zs')[0] != "\t")
-            " Split into list of characters and looks at the first one
+         if (line[0] != "\t")
+            " Look at the first character
             let l:currentProject = split(line)[0]
             let l:currentProjecttype = split(line)[1]
-            let g:ProjectManager[currentProject] = {"type":currentProjecttype, "dirs":[], "name":currentProject}
+            let g:ProjectManager[currentProject] =
+                     \ {"type":currentProjecttype, "dirs":[], "optional":[], "name":currentProject, "excludes":[]}
          else
             if has_key(g:ProjectManager, currentProject)
-               call add (g:ProjectManager[currentProject]["dirs"], substitute(line, "\t", "", "g"))
+               let lineType = matchstr(line, '\t\zs\u')
+               let strippedLine = substitute(line, '\t\u ', '', 'g')
+               if (lineType == 'D') " Directories
+                  call add(g:ProjectManager[currentProject]["dirs"], strippedLine)
+               elseif (lineType == 'O') " Optional directories
+                  call add(g:ProjectManager[currentProject]["optional"], strippedLine)
+               elseif (lineType == 'E') " Exclude files
+                  call add(g:ProjectManager[currentProject]["excludes"], strippedLine)
+               else
+                  " Assumes dirs in the case of no leader
+                  call add(g:ProjectManager[currentProject]["dirs"], substitute(line, '\t', '', 'g'))
+               endif
             else
                return -1
             endif
@@ -911,44 +1186,46 @@ endfunction
 "          commands, projects, or directories based on which argument the
 "          user is currently typing.
 "     input/returns - see :h command-completion-custom
-function! ProjectCompletion(arg, line, pos)
+function! CommandProjectHybridCompletion(arg, line, pos)
    let returnString = ""
-   if (a:line =~ "^ProjSelect ")
-      let argList = a:arg
-      for project in keys(g:ProjectManager)
-         let returnString .= project . "\n"
+   let argList = split(a:line, '\%(\%(\%(^\|[^\\]\)\\\)\@<!\s\)\+', 1)
+   if     len(argList) == 1
+      " One argument, complete commands
+      for commands in s:ProjectManagerCommands
+         let returnString .= commands . "\n"
       endfor
       return returnString
-   else
-      let argList = split(a:line, '\%(\%(\%(^\|[^\\]\)\\\)\@<!\s\)\+', 1)
-      if     len(argList) == 1
-         " One argument, complete commands
-         for commands in s:ProjectManagerCommands
-            let returnString .= commands . "\n"
+   elseif len(argList) == 2
+      " Two arguments, complete project names
+      for project in keys(g:ProjectManager)
+         let returnString .= argList[0] . " " . project . "\n"
+      endfor
+      return returnString
+   elseif len(argList) == 3
+      " Three arguments, complete dirs
+      if (argList[0] == "rename")
+         " rename's third argument is brand new and there's noting to complete
+         return ""
+      else
+         " TODO Do this differently based on the type of command (Some of them should look at the dirs that already exist in the project
+         let returnStringList = split(globpath(ExpandDir(argList[2], 0), '*'), "\0")
+         for line in returnStringList
+            if isdirectory(line)
+               let returnString .= argList[0] . " " . argList[1] . " " . line . "\n"
+            endif
          endfor
-         return returnString
-      elseif len(argList) == 2
-         " Two arguments, complete project names
-         for project in keys(g:ProjectManager)
-            let returnString .= argList[0] . " " . project . "\n"
-         endfor
-         return returnString
-      elseif len(argList) == 3
-         " Three arguments, complete dirs
-         if (argList[0] == "rename")
-            " renames third argument is brand new and there's noting to complete
-            return ""
-         else
-            let returnStringList = split(globpath(ExpandDir(argList[2], 0), '*'), "\0")
-            for line in returnStringList
-               if isdirectory(line)
-                  let returnString .= argList[0] . " " . argList[1] . " " . line . "\n"
-               endif
-            endfor
-            return(returnString)
-         endif
+         return(returnString)
       endif
    endif
+endfunction
+
+function! ProjectCompletion(arg, line, pos)
+   let returnString = ""
+   let argList = a:arg
+   for project in keys(g:ProjectManager)
+      let returnString .= project . "\n"
+   endfor
+   return returnString
 endfunction
 
 " FormatVimGrepFiles ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -969,6 +1246,15 @@ function! FormatVimGrepFiles(dirList)
    return myReturnString
 endfunction
 
+function! FormatCtagExcludes(project)
+   let myReturnString = ""
+   for exclude in a:project.excludes
+      let exclude = substitute(exclude, '.*/', '', '')
+      let myReturnString .= " --exclude=". exclude .""
+   endfor
+   return myReturnString
+endfunction
+
 " ProjectVimGrep ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 function! ProjectVimGrep(searchWord)
    let origdir = getcwd()
@@ -977,11 +1263,21 @@ function! ProjectVimGrep(searchWord)
    let ReturnedProjectStruct = ReturnProject(getcwd())
    let project = ReturnedProjectStruct[0]
    let projectRoot = ReturnedProjectStruct[1]
+   let dirs = ReturnProjectDirectories(project.name)
 
-   let searchDirs = FormatVimGrepFiles(project.dirs)
+   let searchDirs = FormatVimGrepFiles(dirs)
    exe "cd " . projectRoot
    " Change directory so that our relative projects can have the correct
    "   starting point
+
+   " If there are any excludes make sure to add them to wildignore so we don't
+   "   find them in the search.
+   let excludeString = ''
+   for exclude in project.excludes
+      let excludeString .= substitute(exclude, '.*\/', '', '') . ','
+   endfor
+   let excludeString = substitute(excludeString, ',$', '', '')
+   exe 'set wildignore+='. excludeString
 
    exe "lvimgrep /" . a:searchWord."/j " . searchDirs
    lw
@@ -989,6 +1285,9 @@ function! ProjectVimGrep(searchWord)
    let @/ = a:searchWord
    cclose
    call setqflist([])
+
+   " Remove the files from wildignore for future searches
+   exe 'set wildignore-='. excludeString
 
    exe "cd " . origdir
    " Back to where we started
@@ -1100,6 +1399,7 @@ function! TraverseCtag(...)
          call TraverseCtag('Non-recursive')
       else
          " Base case: Tried but couldn't generate c-tags.
+         call <SID>EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=\S.*$'))
          "   Quit superfluous buffer
          quit
       endif
@@ -1110,7 +1410,41 @@ function! TraverseCtag(...)
       elseif (winnr("$") > initialWinNum)
          quit
       endif
-      call <SID>EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=.*$'))
+      call <SID>EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=\S.*$'))
+   endtry
+endfunction
+
+" Tag <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Executes a :tag but sets the local tag to the appropriate file
+"          beforehand. Also tries to generate tags file if it doesn't exist.
+"     input   - tag: [string] The tag to search for
+"     returns - void
+function! s:Tag(tag, ...)
+   try
+      " If it's part of a project then look in the "root" directory of the
+      "   project for the tags file.
+      let ReturnedProjectStruct = ReturnProject(getcwd())
+      let project = ReturnedProjectStruct[0]
+      let root = ReturnedProjectStruct[1]
+      if (len(project) > 0)
+         if (project.type == 'N')
+            exe "setlocal tags=" . project.dirs[0] . "/tags"
+         elseif (project.type == 'R')
+            exe "setlocal tags=" . root . "/tags"
+         endif
+      endif
+      exec "tag " . a:tag
+   catch /^Vim\%((\a\+)\)\=:E433/
+      "No tag file, try to generate them and retry
+      silent call GenerateCTags()
+      if (a:0 == 0)
+         call <SID>Tag(a:tag, 'Non-recursive')
+      else
+         call <SID>EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=\S.*$'))
+      endif
+   catch /^Vim\%((\a\+)\)\=:E426/
+      "Tag not found
+      call <SID>EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=\S.*$'))
    endtry
 endfunction
 
@@ -1130,14 +1464,15 @@ function! GenerateCTags()
       if isdirectory(ExpandDir("..\Microchip", 0))
          let microchipDirectoryExist = 1
       endif
+      let excludes = FormatCtagExcludes(ReturnProject(currentwd)[0])
       if (ExpandDir(dirs[0], 0) == currentwd)
-         exe "silent!! ctags " . FormatVimGrepFiles(dirs)
+         exe "silent!! ctags " . excludes .' '. FormatVimGrepFiles(dirs)
          if (microchipDirectoryExist)
             exe "silent!! ctags -aR ../Microchip/*"
          endif
       else
          exe "cd " . ExpandDir(dirs[0], 0)
-         exe "! ctags " . FormatVimGrepFiles(dirs)
+         exe "! ctags " . excludes .' '. FormatVimGrepFiles(dirs)
          if (microchipDirectoryExist)
             exe "silent!! ctags -aR ../Microchip/*"
          endif
