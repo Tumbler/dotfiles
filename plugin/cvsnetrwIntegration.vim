@@ -22,6 +22,9 @@ endif
 autocmd BufWritePost * call CVSCheckForUpdates(1)
 autocmd BufCreate * if (&filetype == 'netrw') | call UpdateCVSHilighting() | endif
 
+" TODO: This is cool but has a lot of problems. Need to rethink....
+autocmd QuitPre * if (winnr('$') == 2) | wincmd w | if (expand("%:e")=="dif") | quit | else | wincmd w | endif | endif
+
 nnoremap <A-D> :call DiffWithCVS()<CR>
 nnoremap <A-C> :call CommitWithCVS()<CR>
 nnoremap <A-A> :call AddWithCVS()<CR>
@@ -32,6 +35,7 @@ nnoremap <A-_> :call StartCheck(1)<CR>
 command! CVSCommit :call CommitWithCVS()
 command! CVSAdd    :call AddWithCVS()
 command! CVSUpdate :call UpdateWithCVS()
+
 
 let s:CVSTMPstatusPath = $HOME.'/vimfiles/cvs'
 let s:CVSstatusPath = $HOME.'/vimfiles/cvs'
@@ -322,8 +326,12 @@ function! CommitWithCVS()
       " Position cursor back on file
       exe "normal /" . file . "\rzz"
    else
+      let winnr = winnr()
       call CVScommit()
       call CVSCheckForUpdates(1)
+      while (winnr != winnr())
+         wincmd w
+      endwhile
    endif
 endfunction
 
