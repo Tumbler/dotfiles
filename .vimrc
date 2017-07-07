@@ -58,7 +58,7 @@ set autochdir
 set diffopt=filler,vertical,context:1000000
 " Automatically opens diffs with filler lines for sync, vertically
 "   (side-by-side), and with all folds open
-set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym
+set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym,Nmakefile
 " vimgrep ignores object files
 set wildmenu
 " Tab completing in command-line gives visual menu
@@ -79,15 +79,15 @@ set sessionoptions=blank,buffers,curdir,folds,globals,localoptions,options,resiz
 set comments+=:\"
 " How could we forget about vim comments?!
 
-"if has("gui_running") && has("autocmd")
-"augroup Focus
-   "au!
-   "autocmd FocusGained * let @" = @+
-   "autocmd FocusLost   * let @+ = @"
-"augroup END
-"else
-   "set clipboard^=unnamed
-"endif
+if has("gui_running") && has("autocmd")
+augroup Focus
+   au!
+   autocmd FocusGained * let @" = @+
+   autocmd FocusLost   * let @+ = @"
+augroup END
+else
+   set clipboard^=unnamed
+endif
 " I often find myself wanting to copy between vims. The clipboard option
 "   works OK for this but wipes out the clipboard when you do basically
 "   anything and can get frustrating if you want to delete a line and
@@ -114,6 +114,7 @@ if has("win32")
    let g:loaded_zip       = 1
    " Prevent vim from trying to open zip files (annoying when vimgrepping if not setup)
 endif
+
 if has("gui_running")
    set guioptions-=m
    " This removes the menu bar from the gui
@@ -194,6 +195,7 @@ inoremap <A-e> <Esc>
 
 inoremap <Del> <NOP>
 inoremap <A-BS> <Del>
+cnoremap <A-BS> <Del>
 " Delete is hard to press and is in different places on different keyboards
 
 " Basically makes it so that if a line goes over one visual line,
@@ -215,9 +217,11 @@ noremap <silent> H :call  search('\(^\s\+\)\@<=\S\\|^', 'b', line('.'))<CR>
 " Go to beginning of text (like '^') or beginning of line, whichever comes first
 noremap L $
 " Go to end of line
-nnoremap K  :exe "tab help ".expand('<cword>')<CR>
-nnoremap gK :exe "tab help ".expand('<cWORD>')<CR>
-" Opens help on word under cursor in a new tab
+if has("win32")
+   nnoremap K  :exe "tab help ".expand('<cword>')<CR>
+   nnoremap gK :exe "tab help ".expand('<cWORD>')<CR>
+   " Opens help on word under cursor in a new tab
+endif
 
 onoremap <expr> O v:operator == 'd' ? ':.diffget<CR>' : '<ESC><ESC>'
 onoremap <expr> P v:operator == 'd' ? ':.diffput<CR>' : '<ESC><ESC>'
@@ -264,10 +268,10 @@ nnoremap <C-h>  <C-W>h
 nnoremap <C-l>  <C-W>l
 inoremap <C-l>  <Esc><C-W>l
    " Right
-nnoremap <C-d>   :res +10<CR>
-inoremap <C-d>   <C-o>:res +10<CR>
-nnoremap <C-s>   :vertical res +10<CR>
-inoremap <C-s>   <C-o>:vertical res +10<CR>
+nnoremap <C-d>   :res +10<CR>:vertical res +10<CR>
+inoremap <C-d>   <C-o>:res +10<BAR>:vertical res +10<CR>
+"nnoremap <C-s>   :vertical res +10<CR>
+"inoremap <C-s>   <C-o>:vertical res +10<CR>
 " Increases size of splits incrementally
 nnoremap <expr> <C-a> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
 nnoremap <expr> <C-x> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
@@ -300,8 +304,10 @@ inoremap <silent><A-m> <Esc>:call OpenNewTabWithNetrw()<CR>
 " Opens a new tab with explorer view, looking at previous file
 noremap  <A-j>   :call ShiftScreen("j")<CR>
 inoremap <A-j>   <C-o>:call ShiftScreen("j")<CR>
+vnoremap <A-j>   <C-e>j
 noremap  <A-k>   :call ShiftScreen("k")<CR>
 inoremap <A-k>   <C-o>:call ShiftScreen("k")<CR>
+vnoremap <A-k>   <C-y>k
 " Move cursor and shift window at the same time (I use this everyday)
 cnoremap <A-k> <Up>
 cnoremap <A-j> <Down>
@@ -455,6 +461,9 @@ augroup Tumbler
    autocmd VimEnter    * call LoadSession()
                          " If a session was previously saved, load it
 
+   autocmd VimEnter    * if exists('g:loaded_helplink') | let g:helplink_copy_to_registers = ['+', '*', '"'] | endif
+   " Add unnamed register to helplink
+
    " Buffer specific stuff
    autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
    " When editing a file, always jump to the last cursor position.
@@ -471,10 +480,8 @@ augroup Tumbler
    autocmd BufReadPre  * imap<buffer>  <A-x>   <Esc>^2x$<A-j>
                          " Generalized quick comments (C-style)
 
-   autocmd BufReadPost * if &modifiable == 1 | set fileformat=unix | endif
-                         " set line endings, because Windows is wrong...
-                         " (has to be done for each buffer, but only if
-                         "   the file is modifiable)
+   autocmd BufReadPost * call SetLineEndings()
+
    " Filetype dependent stuff
    " Perl
    autocmd FileType perl     nmap<buffer>  <A-c>   I#<Esc>$<A-j>
@@ -482,6 +489,12 @@ augroup Tumbler
    autocmd FileType perl     nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType perl     imap<buffer>  <A-x>   <Esc>^x$<A-j>
                              " Perl style quick comments
+
+   autocmd FileType python   nmap<buffer>  <A-c>   I#<Esc>$<A-j>
+   autocmd FileType python   imap<buffer>  <A-c>   <Esc>I#<Esc>$<A-j>
+   autocmd FileType python   nmap<buffer>  <A-x>   ^x$<A-j>
+   autocmd FileType python   imap<buffer>  <A-x>   <Esc>^x$<A-j>
+                             " Python style quick comments
    " HTML
    autocmd FileType html     nmap<buffer>  <A-c>   A--><Esc>I<!--<Esc>$<A-j>
    autocmd FileType html     imap<buffer>  <A-c>   <Esc>A--><Esc>I<!--<Esc>$<A-j>
@@ -533,10 +546,9 @@ if !isdirectory($HOME.'/vimfiles/swap')
 endif
 " Makes sure that our location for swap files exists
 if filereadable($HOME.'/vimfiles/.vimpref')
-   if !(exists('g:Tumbler_vimrc'))
+   source $HOME/vimfiles/.vimpref
+   if (!exists('g:Tumbler_vimrc'))
       autocmd VimEnter * source $HOME/vimfiles/.vimpref
-   else
-      source $HOME/vimfiles/.vimpref
    endif
 endif
 " Loads additional, location specific, options should there be any
@@ -985,7 +997,7 @@ function! ParagraphToEightyChars(...)
    while (len(getline('.')) > 80)
       normal! 0
       " Find the first white-space character before the 81st character.
-      call search('\(\%81v.*\)\@<!\s\+\(.*\s.\{-}\%81v\)\@!', 'c', line('.'))
+      call search('\(\%82v.*\)\@<!\s\+\(.*\s.\{-}\%82v\)\@!', 'c', line('.'))
       " Replace it with a new line if the word itself isn't longer than 80
       " chars. (If it is, it's a lost cause. We can't properly break up the
       " line so just give up.)
@@ -994,7 +1006,7 @@ function! ParagraphToEightyChars(...)
          exe "normal! r\<CR>"
          :s/\s\+$//e
          " Start the line on the same line that the cursor started on
-         if !(len(commentHeader) == 0 && cursorCol == 1)
+         if !(len(commentHeader) == 0 && col('.') == 1)
             normal! w
          endif
          " There's an edge case where if you start with no comment header and
@@ -1026,6 +1038,13 @@ function! ParagraphToEightyChars(...)
    " Trim any accidental trailing whitespace
    :s/\s\+$//e
 endfunction
+
+function! SetLineEndings()
+   if &modifiable == 1 | set fileformat=unix | endif
+   " Set line endings, because Windows is wrong...  (has to be done for each
+   " buffer, but only if the file is modifiable) Redefine this function if you
+   " don't like this functionality.
+endfunction
 "<
 
 let g:Tumbler_vimrc = 1
@@ -1034,28 +1053,17 @@ let g:Tumbler_vimrc = 1
 
 " normal mode tips
 
-" gf              - Goes to file under cursor (think #include)
 " gi              - Goes to last insert location (good for searching for
 "                    something and then returning to edit mode)
 " ga              - Inspect character under cursor
-" gd              - Go to definition of word under cursor within the current
-"                    function
-" gD              - Go to definition of word under cursor within the current
-"                    file
 " g?              - Rot13
-" ~               - Swaps case of letter
 " ={direction}    - Auto indents stuff (think =%)
 " =iB             - Auto indents current inner Block {}
-" dp              - update other file in a diff
-" V               - Visual select of whole line
 " zR              - Opens all folds in diffs
 " zM              - Closes all folds in diffs
 " <C-]>           - Goes to link in :help
-" ]s              - Search for next spelling mistake
-" J               - Joins lines (instead of lots of deletes!)
 " gu/U{direction} - Make {direction} text lowercase/uppercase.
 " "3p             - Paste from 3 edits ago (works with 1 to 9)
-" {Insert}<C-y>   - Copies text one line above.
 
 " Vimscript tips
 
@@ -1074,7 +1082,6 @@ let g:Tumbler_vimrc = 1
 " list[3:]     Only return the 4th and beyond item in the list
 " list[:5]     Only return up to the 6th item in the list
 
-":set diffopt+=iwhite   - Ignores differing whitespace when diffing
                                            " Insert  Command-line   Lang-Arg ~
 " :map   :noremap   :unmap   :mapclear        yes         yes           yes
 " :map!  :noremap!  :unmap!  :mapclear!       yes         yes            -
@@ -1083,11 +1090,14 @@ let g:Tumbler_vimrc = 1
 " :cmap  :cnoremap  :cunmap  :cmapclear        -          yes            -
 " :lmap  :lnoremap  :lunmap  :lmapclear       yes*       yes*hh         yes*
 
-" :[cl]older         - Remembers previous quickfix/location list
-" :[cl]newer         - Remembers more recent quickfix/location list
-" :cl[ist]           - Shows the contets of the quickfix
-" :g!                - Negative global command, AKA do it on every line that's
-"                      DOESN'T match
+" :[col]older         - Remembers previous quickfix/location list
+" :[lol]der           - ^^ for the location list
+" :[cl]newer          - Remembers more recent quickfix/location list
+" :[lnew]er           - ^^ for the location list
+" :[cl]ist            - Shows the contets of the quickfix
+" :[lli]st            - ^^ for the location list
+" :[cw]indow          - Opens the quickfix
+" :[lw]indow         - ^^ for the location list
 
 " :nore before a mapping command is for non-recursive mappings
 
@@ -1110,6 +1120,11 @@ let g:Tumbler_vimrc = 1
 " Try `:set rightleft` for some random fun
 
 " To disable autocmds for a single command use `:noautocmd {cmd}`
+
+" Timing stuff: [time]
+"    let beginTime = reltime()
+"    let endTime = reltime()
+"    echo reltimestr(reltime(beginTime, endTime))
 
 "  XXX Vim Regex XXX
 " ignorecase   "textToMatch" =~  'regex'    "textToNotMatch" !~  'regex'
@@ -1156,6 +1171,7 @@ let g:Tumbler_vimrc = 1
 "     Restrict regex to certain screen positions:
 " \%5l        Only on line 5
 " \%80c       Only at column 80
+" \%'m        Mark "m"
 
 "     Lookaheads/behinds
 " y\(xx\)\@=  Mathces y (and only the y) when it's followed by two x's
