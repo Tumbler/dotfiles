@@ -2,7 +2,7 @@
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 06/29/2017 02:36 PM
-" Version: 2.01 <- This version number hasn't been uploaded yet. Use this one!
+" Version: 2.02
 
 " TODO: Community plugin standards
 
@@ -21,6 +21,11 @@ augroup ProjectManager
    autocmd VimEnter * call LoadProject()
 augroup END
 endif
+
+hi projectManagerArrows   cterm=BOLD ctermbg=bg ctermfg=28  gui=BOLD guibg=bg guifg=Yellow
+hi projectManagerDirs     cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
+hi projectManagerOptional cterm=NONE ctermbg=bg ctermfg=116 gui=NONE guibg=bg guifg=SkyBlue
+hi projectManagerExcludes cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
 
 command! Proj call Project()
 " Brings up the Project Manager, um... Manager...
@@ -58,13 +63,23 @@ function! ReturnProject(input)
       return [g:ProjectManager[a:input], '']
    else
       " Don't have a project called that, try to find a directory that matches
-      let l:filename = substitute(a:input, "\\", "/", "g")
-      " Rectify Windows directory types
+      let dirName = substitute(a:input, "\\", "/", "g")
+      " Rectify Windows directory types TODO
       let projectList = {}
       for key in keys(g:ProjectManager)
          for dir in copy(ReturnProjectDirectories(key))
-            if (dir == filename)
-               let projectList[key] = g:ProjectManager[key]
+            if (dir == dirName)
+               let currentFile = expand('%:t')
+               let inExcludeFile = 0
+               " Make sure we're not in an exclude file
+               for exclude in copy(g:ProjectManager[key].exclude)
+                  if (currentFile == fnamemodify(exclude, ':t'))
+                     let inExcludeFile = 1
+                  endif
+               endfor
+               if !(inExcludeFile)
+                  let projectList[key] = g:ProjectManager[key]
+               endif
                break
             endif
          endfor
@@ -142,6 +157,9 @@ function! ReturnProject(input)
       let s:activeProject = key
       let ProjectRoot = projects[key].root
       exe "cd ".originalDir
+      if (len(projects) > 1)
+         echo "Found multiple projects that match. Using " . key . "."
+      endif
       return [g:ProjectManager[key], ProjectRoot]
    endif
 
@@ -195,6 +213,7 @@ function! ReturnAbsoluteRoot(project, match)
             return ''
          endif
       endif
+
       " Check all directories from perspective of root
       exe "cd ".root
       for dir in a:project["dirs"]
@@ -205,7 +224,16 @@ function! ReturnAbsoluteRoot(project, match)
       endfor
       exe "cd ".originalDir
 
-      " All dirs checked out
+      " All dirs checked out.
+      " Last check: Make sure we're not in an excluded file.
+      let currentFile = expand('%:t')
+      for exclude in a:project["excludes"]
+         if (currentFile == fnamemodify(exclude, ':t'))
+            return ''
+         endif
+      endfor
+
+      " Everything checks out
       return root
    endif
 endfunction
@@ -1053,15 +1081,13 @@ function! PrintProject(inputProject, option)
    endif
    let counter = 1
    for project in l:projectList
+      echo project . ":"
       if (project == s:activeProject)
-         echo project . ":  < < < < < < < < < <\n"
-      else
-         echo project . ":\n"
+         echohl projectManagerArrows
+         echon "  < < < < < < < < < <"
+         echohl NONE
       endif
       if a:option != 2
-         hi projectManagerDirs     cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
-         hi projectManagerOptional cterm=NONE ctermbg=bg ctermfg=116 gui=NONE guibg=bg guifg=SkyBlue
-         hi projectManagerExcludes cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
          echohl projectManagerDirs
          for dir in copy(g:ProjectManager[project]["dirs"])
             echo "        " . (a:option == 1? "(" . counter . ")" : "") . dir ."\n"
