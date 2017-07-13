@@ -115,6 +115,11 @@ if has("win32")
    " Prevent vim from trying to open zip files (annoying when vimgrepping if not setup)
 endif
 
+let g:projectManager_TagKeyCombo = '<A-,>'
+" Changes the mapping for tag under cusor
+
+let g:baseConverter_leading_binary_zeros = 1
+
 if has("gui_running")
    set guioptions-=m
    " This removes the menu bar from the gui
@@ -125,30 +130,27 @@ endif
 filetype indent on
 " Turn on filetype dependent indenting
 
-iabbrev ture true
+inoreabbrev ture true
 " Insert mode abbreviation for misspelling true.
 
 " Command line abbreviations:
-cabbrev h tab help
+cnoreabbrev <expr> h (getcmdtype() == ':' && getcmdline() =~ '^h$')? 'tab help' : 'h'
 " Help opens in new tab
-cabbrev w   call SaveBuffer(0)
-cabbrev wq  call SaveBuffer(1)
-cabbrev wy  call SaveBuffer(2)
-cabbrev wqy call SaveBuffer(3)
+cnoreabbrev <expr> w (getcmdtype() == ':' && getcmdline() =~ '^w$')? 'call SaveBuffer(0)' : 'w'
+cnoreabbrev wq  call SaveBuffer(1)
+cnoreabbrev wy  call SaveBuffer(2)
+cnoreabbrev wqy call SaveBuffer(3)
 " wf = write force
-cabbrev wf  call SaveBuffer(4)
+cnoreabbrev wf  call SaveBuffer(4)
 " When saving tracked files, vim will auto-update the last edited info
 
-cabbrev \w w
-" We have to be able to write "w" somehow...
-
-cabbrev qt  tabclose
+cnoreabbrev qt  tabclose
 " Like :qa, but only closes the current tab
 
-cabbrev D Diffsplit
+cnoreabbrev D Diffsplit
 " I use diffsplit a lot, might as well make it easer to type
 
-cabbrev qh tabdo if (!buflisted(bufnr('%')) && &modifiable == 0) <BAR> tabclose <BAR> endif
+cnoreabbrev qh tabdo if (!buflisted(bufnr('%')) && &modifiable == 0) <BAR> tabclose <BAR> endif
 " Closes all help tabs (Technically all unlsted non-modifiable, but this is usually going to just be help)
 
 if has("unix") && !has("gui_running")
@@ -268,10 +270,10 @@ nnoremap <C-h>  <C-W>h
 nnoremap <C-l>  <C-W>l
 inoremap <C-l>  <Esc><C-W>l
    " Right
-nnoremap <C-d>   :res +10<CR>:vertical res +10<CR>
-inoremap <C-d>   <C-o>:res +10<BAR>:vertical res +10<CR>
-"nnoremap <C-s>   :vertical res +10<CR>
-"inoremap <C-s>   <C-o>:vertical res +10<CR>
+nnoremap <C-d>   :res +10<CR>
+inoremap <C-d>   <C-o>:res +10<CR>
+nnoremap <C-s>   :vertical res +10<CR>
+inoremap <C-s>   <C-o>:vertical res +10<CR>
 " Increases size of splits incrementally
 nnoremap <expr> <C-a> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
 nnoremap <expr> <C-x> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
@@ -370,12 +372,8 @@ nnoremap <silent><A-V> :call OpenVimrc(1)<CR>:silent! normal! zO<CR>
 " Opens vimrc (this file) in new tab
 nnoremap <A-r>   :call OpenVimrc()<CR>GzR
 " Opens vimrc (this file) in new tab and jumps to the regular expression section for quick reference.
-nnoremap <A-,>   :call TraverseCtag()<CR>
-" Goes to ctag under curser
 nnoremap <A-.>   :pop<CR>
 " Goes to the previous location in the tag stack
-nnoremap <expr><A-<>   exists('g:vimProjectManager')? ":call GenerateCTags()<CR>":""
-" Runs ctags on current project (See Project Manager) (assuming you have ctags installed)
 inoremap {{ {<Enter>}<Esc>O
 " Auto puts closing brace and indents you to the right place automatically
 nnoremap <A-z>   za
@@ -384,8 +382,8 @@ nnoremap <A-/> :!start gvim<CR>
 " Opens another gVim instance
 
 " Vimgrep
-nnoremap <A-8>   :call ProjectVimGrep('\<'.expand('<cword>').'\>')<CR>
-nnoremap g<A-8>  :call ProjectVimGrep(expand('<cword>'))<CR>
+nnoremap <A-8>   :exec "ProjectGrep \\<". expand('<cword>') ."\\>"<CR>
+nnoremap g<A-8>  :exec "ProjectGrep ". expand('<cword>')<CR>
 " * vimgrep: works like * but greps the current directory instead of just the file
 nnoremap <S-A-n>  :call NextQuickFix()<CR>
 nnoremap <S-A-p>  :call NextQuickFix(1)<CR>
@@ -546,9 +544,10 @@ if !isdirectory($HOME.'/vimfiles/swap')
 endif
 " Makes sure that our location for swap files exists
 if filereadable($HOME.'/vimfiles/.vimpref')
-   source $HOME/vimfiles/.vimpref
-   if (!exists('g:Tumbler_vimrc'))
+   if !(exists('g:Tumbler_vimrc'))
       autocmd VimEnter * source $HOME/vimfiles/.vimpref
+   else
+      source $HOME/vimfiles/.vimpref
    endif
 endif
 " Loads additional, location specific, options should there be any
