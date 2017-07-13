@@ -2,7 +2,7 @@
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 03/29/2017 04:35 PM
-let s:Version = 2.02
+let s:Version = 2.03 "<- Change this!
 
 " TODO: Add filler. See: 'diffopt'
 "       IDEA! Just use :diffthis in the buffer creation. There is currently at
@@ -11,9 +11,10 @@ let s:Version = 2.02
 "       (The buffer totally exists.)
 "       Maybe just use :diffthis in sorting mode 3??
 " TODO: Add copying of files/dirs (essentially dp and do)
+" TODO: Remove unnecessary <SID>s
 
 " Anti-inclusion guard and version
-if (exists("g:loaded_baseConverter") && (g:loaded_baseConverter >= s:Version))
+if (exists("g:loaded_dirDiff") && (g:loaded_dirDiff >= s:Version))
    finish
 endif
 let g:loaded_dirDiff = s:Version
@@ -37,7 +38,6 @@ let g:dirDiff_IncludeHiddenFiles = 0
 "   |--root[bool]                " Whether or not this node is the root of the
 "                                "   comparison (has no parent)
 
-
 let s:DirMode = 0
 let s:uniqueID = 0
 let s:sortDirs = [[], []]
@@ -54,12 +54,12 @@ function! DirDiff(...)
       if (expand('%') != '')
          cd %
       endif
-      let firstDirTemp = ExpandDir(getcwd(), 1)
+      let firstDirTemp = <SID>ExpandDir(getcwd(), 1)
       let secondDirTemp = input("First Directory: " . firstDirTemp . "\n" .
                                 \ "What is the other directory you want to compare? ", 'C:/', "dir")
       " This is here so we can type wile still in the netrw tab.
       if (secondDirTemp != '')
-         let secondDirTemp = ExpandDir(secondDirTemp, 1)
+         let secondDirTemp = <SID>ExpandDir(secondDirTemp, 1)
       endif
       let swappedFlag = 0
       if (a:0 > 0 && a:1 == 1)
@@ -973,7 +973,7 @@ endfunction
 "   brief: Same as Traverse but only does one dir
 "     input   - dir: [{directory}] The dir to traverse to
 "               window: [int] The window being used in the traverse
-"     returns - 
+"     returns - void
 function! s:SingleTraverse(dir, window)
    if (a:window == 1)
       let parentNode = t:dirDiff_FirstDir.currentNode
@@ -1278,6 +1278,25 @@ function! s:EchoError(message)
    echohl ERROR
    echo a:message
    echohl NORMAL
+endfunction
+
+" ExpandDir <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Expands relative directories to absolute as well as takes out any
+"          Win-slashes.
+"     input   - dir: [string] The directory to expand
+"     input   - trailingSlashFlag: [bool] Returns a string with a trailing slash
+"               if true, without if false.
+"     returns - dir: [string] The expanded directory
+function! s:ExpandDir(dir, trailingSlashFlag)
+   let newDir = a:dir
+   if (a:trailingSlashFlag)
+      let newDir = fnamemodify(newDir, ":p")
+   else
+      let newDir = fnamemodify(newDir, ":p:h")
+   endif
+   let newDir = substitute(newDir, "\\", "/", "g")
+
+   return newDir
 endfunction
 
 " The MIT License (MIT)
