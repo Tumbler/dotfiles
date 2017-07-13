@@ -2,10 +2,9 @@
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 12/13/2016 03:01 PM
-" Version: 1.3
+" Version: 1.4 <-Change this!
 
 " TODO: Community plugin standards
-" TODO: EchoError
 
 let g:netrwExtension = 1
 
@@ -61,7 +60,7 @@ function! SmartExplore(origin)
       endif
    endif
    if (&modified && winnr('$') == 1)
-      call EchoError("Save changes first!")
+      call <SID>EchoError("Save changes first!")
       return
    endif
    if g:netrw_first
@@ -130,7 +129,7 @@ function! SmartInspect()
    call SyncDirs()
 
    if (file =~ '/$')
-      exec "call netrw#LocalBrowseCheck('" . ExpandDir(file, 1). "')"
+      exec "call netrw#LocalBrowseCheck('". <SID>ExpandDir(file, 1). "')"
       if (&scrolloff =~# '0')
          normal zz
       endif
@@ -143,12 +142,12 @@ function! SmartInspect()
       if (file =~ '\(\.vba\)\|\(.vmb\)$')
          let choice = input("Source Vimball? y/n (no to edit)", "")
          if (choice =~ '^y')
-            exe "source ".file
+            exe "source ". file
          else
-            exe "edit " . fnamemodify(file, ":p")
+            exe "edit ". fnamemodify(file, ":p")
          endif
       else
-         exe "edit " . fnamemodify(file, ":p")
+         exe "edit ". fnamemodify(file, ":p")
       endif
    endif
 endfunction
@@ -157,11 +156,11 @@ endfunction
 "   brief: Jumps to a directory directly
 "    input - dir [String] The directory to jump to
 function! ManualExplore(dir)
-   let myDir = ExpandDir(a:dir, 1)
+   let myDir = <SID>ExpandDir(a:dir, 1)
    if isdirectory(myDir)
       call netrw#LocalBrowseCheck(myDir)
    else
-      call EchoError("Not a directory")
+      call <SID>EchoError("Not a directory")
    endif
 endfunction
 
@@ -265,6 +264,37 @@ endfunction
 "          escaped string.
 function! EscapeRegex(input)
    return escape(a:input, '\^$.*~[&')
+endfunction
+
+" ExpandDir <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Expands relative directories to absolute as well as takes out any
+"          Win-slashes.
+"     input   - dir: [string] The directory to expand
+"     input   - trailingSlashFlag: [bool] Returns a string with a trailing slash
+"               if true, without if false.
+"     returns - dir: [string] The expanded directory
+function! s:ExpandDir(dir, trailingSlashFlag)
+   let newDir = a:dir
+   if (a:trailingSlashFlag)
+      let newDir = fnamemodify(newDir, ":p")
+   else
+      let newDir = fnamemodify(newDir, ":p:h")
+   endif
+   let newDir = substitute(newDir, "\\", "/", "g")
+
+   return newDir
+endfunction
+
+" EchoError <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Echos message with error hilighting (usually red background with
+"          white text).
+"     input   - message: [string] A string to echo on the command line
+"     returns - void
+function! s:EchoError(message)
+   echo "\n"
+   echohl ERROR
+   echo a:message
+   echohl NORMAL
 endfunction
 
 "<< End of netrw extension plugin <><><><><><><><><><><><><><><><><><><><><><><>
