@@ -1,8 +1,8 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/13/2016 03:01 PM
-" Version: 1.4 <-Change this!
+" Last Edited: 07/19/2017 04:56 PM
+" Version: 1.5
 
 " TODO: Community plugin standards
 
@@ -144,10 +144,10 @@ function! SmartInspect()
          if (choice =~ '^y')
             exe "source ". file
          else
-            exe "edit ". fnamemodify(file, ":p")
+            exe "edit ". fnameescape(fnamemodify(file, ":p"))
          endif
       else
-         exe "edit ". fnamemodify(file, ":p")
+         exe "edit ". fnameescape(fnamemodify(file, ":p"))
       endif
    endif
 endfunction
