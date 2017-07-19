@@ -277,6 +277,7 @@ inoremap <C-s>   <C-o>:vertical res +10<CR>
 " Increases size of splits incrementally
 nnoremap <expr> <C-a> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
 nnoremap <expr> <C-x> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
+" TODO: has problems when there are actual x's in the preceeding text.
 " Makes hex digits show up capital when auto-incrementing/decrementing
 
 nnoremap <A-y>   @q
@@ -466,11 +467,10 @@ augroup Tumbler
    autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
    " When editing a file, always jump to the last cursor position.
 
-   autocmd BufReadPost * if (&filetype != 'qf') | let b:ColorColumnID = matchadd('ColorColumn', '\%81v.') | endif
+   autocmd BufReadPost * if (&filetype != 'qf' && !exists('b:ColorColumnID')) | let b:ColorColumnID = matchadd('ColorColumn', '\%81v.') | endif
    " Highlight the 81st character on the line if it's not the quickfix.
    autocmd FilterWritePost * if (&diff && exists('b:ColorColumnID')) | call matchdelete(b:ColorColumnID) | unlet b:ColorColumnID |endif
    " When diffing take out the coloring because it looks like diff highlighting.
-   " ^^ TODO: This still has issues sometimes. I'll get a MCVE next time I encounter it....
 
    autocmd BufReadPre  * nmap<buffer>  <A-c>   I//<Esc>$<A-j>
    autocmd BufReadPre  * imap<buffer>  <A-c>   <Esc>I//<Esc>$<A-j>
