@@ -77,7 +77,8 @@ endif
 "                   .exclude  " A list of files to exclude from searches
 "                and the absolute path to the root directory of the project as a
 "                  string
-function! s:ReturnProject(input)
+"     NOTE: Left public on purpose. (Lets other plugins use projects)
+function! ProjectManager_ReturnProject(input)
    if has_key(g:ProjectManager, a:input)
       " Try to match to a project name
       return [g:ProjectManager[a:input], '']
@@ -87,7 +88,7 @@ function! s:ReturnProject(input)
       " Rectify Windows directory types
       let projectList = {}
       for key in keys(g:ProjectManager)
-         for dir in copy(s:ReturnProjectDirectories(key))
+         for dir in copy(ProjectManager_ReturnProjectDirectories(key))
             if (dir == dirName)
                let currentFile = expand('%:t')
                let inExcludeFile = 0
@@ -142,7 +143,7 @@ function! s:ReturnProject(input)
             let projects[project] = g:ProjectManager[project]
             let projects[project].keyMatch = '.'
          else
-            for directory in (s:ReturnProjectDirectories(project))[1:]
+            for directory in (ProjectManager_ReturnProjectDirectories(project))[1:]
                " Strip out any leading "../"
                let restOfDir = matchstr(directory, '\(/\)\@<=[^.].*')
                if (input =~ restOfDir.'$')
@@ -262,8 +263,9 @@ endfunction
 "   brief: Takes a project and returns all dirs and valid optional dirs.
 "     input   - input: [string] A project name or directory
 "     returns - All valid dirs from a project (including optional dirs)
-function! s:ReturnProjectDirectories(input)
-   let project = copy(s:ReturnProject(a:input)[0])
+"     NOTE: Left public on purpose. (Lets other plugins use projects)
+function! ProjectManager_ReturnProjectDirectories(input)
+   let project = copy(ProjectManager_ReturnProject(a:input)[0])
    let dirs = copy(project.dirs)
    for dir in project.optional
       if isdirectory(dir)
@@ -1265,7 +1267,7 @@ function! s:CommandProjectHybridCompletion(arg, line, pos)
       elseif (argList[0] =~ 'delete\|main\|remove')
          " These commands choose dirs that are already a part of the project
          if (has_key(g:ProjectManager, argList[1]))
-            for dir in s:ReturnProjectDirectories(argList[1])
+            for dir in ProjectManager_ReturnProjectDirectories(argList[1])
                let returnString .= argList[0] ." ". argList[1] ." ". dir ."\n"
             endfor
             return returnString
@@ -1335,10 +1337,10 @@ function! s:ProjectVimGrep(searchWord)
    let origdir = getcwd()
    " Save for later
 
-   let ReturnedProjectStruct = s:ReturnProject(getcwd())
+   let ReturnedProjectStruct = ProjectManager_ReturnProject(getcwd())
    let project = ReturnedProjectStruct[0]
    let projectRoot = ReturnedProjectStruct[1]
-   let dirs = s:ReturnProjectDirectories(project.name)
+   let dirs = ProjectManager_ReturnProjectDirectories(project.name)
 
    let searchDirs = s:FormatVimGrepFiles(dirs)
    exe "cd " . projectRoot
@@ -1434,7 +1436,7 @@ function! s:TraverseCtag(...)
    try
       " If it's part of a project then look in the "root" directory of the
       "   project for the tags file.
-      let ReturnedProjectStruct = s:ReturnProject(getcwd())
+      let ReturnedProjectStruct = ProjectManager_ReturnProject(getcwd())
       let project = ReturnedProjectStruct[0]
       let root = ReturnedProjectStruct[1]
       if (len(project) > 0)
@@ -1499,7 +1501,7 @@ function! s:Tag(tag, ...)
    try
       " If it's part of a project then look in the "root" directory of the
       "   project for the tags file.
-      let ReturnedProjectStruct = s:ReturnProject(getcwd())
+      let ReturnedProjectStruct = ProjectManager_ReturnProject(getcwd())
       let project = ReturnedProjectStruct[0]
       let root = ReturnedProjectStruct[1]
       if (len(project) > 0)
@@ -1532,7 +1534,7 @@ endfunction
 "     returns - void
 function! s:GenerateCTags()
    let currentwd = s:ExpandDir(getcwd(), 0)
-   let dirs = s:ReturnProjectDirectories(currentwd)
+   let dirs = ProjectManager_ReturnProjectDirectories(currentwd)
    let microchipDirectoryExist = 0
    if len(dirs) == 0
       exe "silent!! ctags " . s:FormatVimGrepFiles(dirs)
@@ -1540,7 +1542,7 @@ function! s:GenerateCTags()
       if isdirectory(s:ExpandDir("..\Microchip", 0))
          let microchipDirectoryExist = 1
       endif
-      let excludes = s:FormatCtagExcludes(s:ReturnProject(currentwd)[0])
+      let excludes = s:FormatCtagExcludes(ProjectManager_ReturnProject(currentwd)[0])
       if (s:ExpandDir(dirs[0], 0) == currentwd)
          exe "silent!! ctags " . excludes .' '. s:FormatVimGrepFiles(dirs)
          if (microchipDirectoryExist)
