@@ -1,17 +1,12 @@
 " @Tracked
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/29/2017 04:35 PM
-let s:Version = 2.03 "<- Change this!
+" Last Edited: 07/14/2017 02:17 PM
+let s:Version = 2.04
 
-" TODO: Add filler. See: 'diffopt'
-"       IDEA! Just use :diffthis in the buffer creation. There is currently at
-"       least one bug with this implementation. Getting a "empty buffer" error
-"       asdf asdf asdf asdf asdf when backing out of singles for some reason.
-"       (The buffer totally exists.)
-"       Maybe just use :diffthis in sorting mode 3??
 " TODO: Add copying of files/dirs (essentially dp and do)
 " TODO: Remove unnecessary <SID>s
+" TODO: Dynamic update of diffness when you save files (Cause they might have changed)
 
 " Anti-inclusion guard and version
 if (exists("g:loaded_dirDiff") && (g:loaded_dirDiff >= s:Version))
@@ -21,9 +16,17 @@ let g:loaded_dirDiff = s:Version
 
 " Options
 " Ignores all directories with names that match this list
-let g:dirDiff_IgnoreDirs = ['CVS']
+if (!exists("g:dirDiff_IgnoreDirs"))
+   let g:dirDiff_IgnoreDirs = ['CVS']
+endif
 " Include hidden files in the diff
-let g:dirDiff_IncludeHiddenFiles = 0
+if (!exists("g:dirDiff_IncludeHiddenFiles"))
+   let g:dirDiff_IncludeHiddenFiles = 0
+endif
+" Use diffthis to add filler to diffDir. This can be useful but it's slower.
+if (!exists("g:dirDiff_UseDiffModeOnDirs"))
+   let g:dirDiff_UseDiffModeOnDirs = 1
+endif
 
 " Definitions:
 " A {directory} is a dictionary with the following structure:
@@ -75,17 +78,17 @@ function! DirDiff(...)
       call <SID>SetUpLegend()
 
       if isdirectory(firstDir) && isdirectory(secondDir)
-         if exists('g:vimProjectManager')
-            let list = ReturnProject(firstDir)
+         if exists('g:loaded_projectManager')
+            let list = ProjectManager_ReturnProject(firstDir)
             let firstProject = list[0]
             let firstRoot = list[1]
-            let list = ReturnProject(secondDir)
+            let list = ProjectManager_ReturnProject(secondDir)
             let secondProject = list[0]
             let secondRoot = list[1]
             if (firstProject.name != '' && (firstProject.name == secondProject.name))
                " If the projects are the same then diff the whole project
                " (Only works for relative projects)
-               for dir in firstProject.dirs
+               for dir in ProjectManager_ReturnProjectDirectories(firstProject.name)
                   exe "cd ".firstRoot
                   let firstDirtoDiff = fnamemodify(dir, ':p')
                   exe "cd ".secondRoot
@@ -280,7 +283,7 @@ function! s:ViewDirDiff(sortOrder, dir1, dir2)
       if (winnr('$') < 2)
          vsplit
       endif
-      call <SID>SortDirDiff(a:sortOrder, a:dir1, a:dir2)
+      call s:SortDirDiff(a:sortOrder, a:dir1, a:dir2)
    else
       " Files already exist, just need to view them.
       if !(<SID>TreeIsDetached(1))
@@ -711,6 +714,12 @@ function s:SetUpBuffer(sortOrder, window)
             call <SID>HighlightDir(a:sortOrder.CommonSameDir, a:sortOrder.CommonDiffDir, a:sortOrder.secondUniqueDir, a:sortOrder.CommonSame, a:sortOrder.CommonDiff, a:sortOrder.secondUnique)
          endif
       endif
+
+      " Create a proper diff with filler and everything.
+      if (g:dirDiff_UseDiffModeOnDirs)
+         diffthis
+      endif
+
       call <SID>SetUpMappings(winnr())
    else
       let bufnr = bufnr(a:sortOrder.dirDiff_Files[a:sortOrder.sortIndex*4 + 2*(a:window-1) + s:DirMode])
@@ -914,15 +923,20 @@ function! s:BackoutOfSingle()
       if (l:mod)
          call <SID>EchoError('Please save file first!')
       else
-         exe 'silent b ' . w:dirDiff_buffNumber
-         call <SID>HighlightDir()
-         set nomodifiable
-         set cursorline
-         if (<SID>TreeIsDetached(winnr()))
-            call <SID>NextSingleItem(<SID>GetCurrentNode(winnr()), 0)
-         else
-            call <SID>NextItem(winnr(), 0)
-         endif
+         try
+            exe 'silent b ' . w:dirDiff_buffNumber
+            call <SID>HighlightDir()
+            set nomodifiable
+            set cursorline
+            if (<SID>TreeIsDetached(winnr()))
+               call <SID>NextSingleItem(<SID>GetCurrentNode(winnr()), 0)
+            else
+               call <SID>NextItem(winnr(), 0)
+            endif
+         catch /^Vim\%((\a\+)\)\=:E749/
+            " This is an erroneous error. It is documented as a known bug in the
+            " help.
+         endtry
       endif
    else
       " If we aren't in a DirDiff tab, then we probably were trying to Explore.
