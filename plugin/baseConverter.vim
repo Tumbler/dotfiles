@@ -4,6 +4,8 @@
 " Last Edited: 03/07/2017 02:40 PM
 let s:Version = 1.04
 
+" TODO: Remove unnecessary <SID>s
+
 " Anti-inclusion guard and version
 if (exists("g:loaded_baseConverter") && (g:loaded_baseConverter >= s:Version))
    finish
@@ -11,7 +13,9 @@ endif
 let g:loaded_baseConverter = s:Version
 
 " Options
-let g:baseConverter_leading_binary_zeros = 0
+if (!exists("g:baseConverter_leading_binary_zeros"))
+   let g:baseConverter_leading_binary_zeros = 0
+endif
 
 command! -nargs=1 Hexcon call <SID>HexConverter('<args>')
 " Automatically detect base and convert into 4 most common bases
@@ -192,7 +196,7 @@ function! s:BaseConversion(num, inBase, outBase, ...)
          let decimalPrecision = len(splitNum[1])
       endif
       let prefix = get(s:prefixes, a:outBase, '')
-      return ((a:0)?prefix:"") . <SID>Decimal2Base(decNum, a:outBase, decimalPrecision)
+      return ((a:0)? prefix : "") . <SID>Decimal2Base(decNum, a:outBase, decimalPrecision)
    endif
 endfunction!
 
