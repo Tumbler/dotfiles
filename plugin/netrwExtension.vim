@@ -1,7 +1,7 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 07/19/2017 04:56 PM
+" Last Edited: 12/13/2016 03:01 PM
 " Version: 1.5
 
 " TODO: Community plugin standards
@@ -122,7 +122,6 @@ endfunction
 "   brief: Explores to file or dir under cursor, centers the screen and saves
 "          the choice so we can remember it next time we're here.
 function! SmartInspect()
-   " TODO: Brakes when it tries to edit a file with and unescaped '%' in the name
    " Grabs line up to the first tab
    let file = matchstr(getline('.'), '^[^\t]*')
    call AddToPathList(file)
@@ -139,6 +138,7 @@ function! SmartInspect()
       call RememberLocation()
       normal C
    else
+      let file = substitute(file, '\*', '', 'g')
       if (file =~ '\(\.vba\)\|\(.vmb\)$')
          let choice = input("Source Vimball? y/n (no to edit)", "")
          if (choice =~ '^y')
