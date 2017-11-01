@@ -2,12 +2,17 @@
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 07/12/2017 09:42 AM
-let s:Version = 2.10
+let s:Version = 2.11
+
+"TODO Add operation for the edit command
+"TODO Did I really need to make ReturnProject return a list or could I have
+"     just included the root in the dictionary??
 
 if (exists("g:loaded_projectManager") && (g:loaded_projectManager >= s:Version))
    finish
 endif
 let g:loaded_projectManager = s:Version
+let projectManager_DirSearchActive = 0
 
 let s:ProjectManagerCommands = ["activate", "add", "blarg", "delete", "exclude", "help", "new", "newrel", "optional", "main", "quit", "remove", "rename", "select", "view"]
    " A list of commands that the ExecuteCommand() function can handle
@@ -64,7 +69,7 @@ else
 endif
 " Runs ctags on current project
 
-" ReturnProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" ProjectManager_ReturnProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Returns the dirs in a project as list
 "     input   - input: [string] A project name or directory as a string
 "     returns - [[project{}, root]] a project is a structure defined as the following:
@@ -1023,7 +1028,8 @@ endfunction
 "               dir: [string] The dir to add to the project
 "     returns - [bool] True if add succeeded
 function! s:AddDirectory(project, dir, relative)
-   if isdirectory(a:dir)
+   " Don't check if directory exists if the project is relative
+   if (a:relative == "R" || isdirectory(a:dir))
       if (a:relative == "R")
          let expandedDir = a:dir
       else
@@ -1059,7 +1065,8 @@ endfunction
 "               relative: [char] R if relative, N if normal project.
 "     returns - 1 on success, -1 on failure, 0 on other input received
 function! s:AddExclusion(project, file, relative)
-   if filereadable(a:file)
+   " Don't check if directory exists if the project is relative
+   if (a:relative == "R" || isdirectory(a:dir))
       if (a:relative == "R")
          let expandedDir = a:file
       else
@@ -1334,6 +1341,10 @@ endfunction
 "     input   - searchWord: [string] What to search for
 "     returns - void
 function! s:ProjectVimGrep(searchWord)
+   let g:ale_enabled = 0
+   let g:projectManager_DirSearchActive = 1
+   " If ale is installed we need to disable it, because it tries to lint
+   " everything we search. It slows things down a TON and sometimes crashes.
    let origdir = getcwd()
    " Save for later
 
@@ -1359,7 +1370,7 @@ function! s:ProjectVimGrep(searchWord)
    exe "lvimgrep /" . a:searchWord."/j " . searchDirs
    lw
    exe "normal! \<C-W>j\<CR>"
-   let @/ = a:searchWord
+   let @/ = a:searchWord . '\c'
    cclose
    call setqflist([])
 
@@ -1368,6 +1379,9 @@ function! s:ProjectVimGrep(searchWord)
 
    exe "cd " . origdir
    " Back to where we started
+   let g:ale_enabled = 1
+   " Turn ale back on
+   let g:projectManager_DirSearchActive = 0
 
    set hlsearch
 endfunction
