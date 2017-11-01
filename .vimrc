@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/29/2017 09:52 AM
+" Last Edited: 10/04/2017 03:27 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -101,12 +101,15 @@ set formatoptions+=jr
 " Remove extra comment headers when [J]oining
 " When in a comment, [r]eturn will automatically add a comment header
 
+">> Plugin settings
 let g:netrw_sort_sequence='[\/]$,*,\.o$,\.obj$,\.info$,\.d$,\.hex$,\.map$,\.mcp$,\.mcw$,\.lib$,\.swp$,\.bak$,\.lst$,\.rlf$,\.sdb$,\.CVSfolderStatus,\~$'
 " Change sorting sequence of netrw explorer to leave different filetypes together
 let g:netrw_sort_options="i"
 " Case insensitive sorting (still not sure why you would want to sort by case, but whatever)
 let g:netrw_banner = 0
 " Don't show netrw's "helpful" banner at the beginning of every directory
+let g:netrw_list_hide ="^\.#"
+" Doesn't show any files that start with .#
 let do_syntax_sel_menu = 1
 " Show filetypes in syntax menu (enables SetSyn() command)
 if has("win32")
@@ -119,6 +122,17 @@ let g:projectManager_TagKeyCombo = '<A-,>'
 " Changes the mapping for tag under cusor
 
 let g:baseConverter_leading_binary_zeros = 1
+
+let g:ale_set_quickfix = 0
+let g:ale_set_loclist = 0
+let g:ale_sign_column_always = 1
+
+let g:ale_change_sign_column_color = 1
+hi SignColumn guibg=#333333
+hi ALESignColumnWithoutErrors guibg=#333333
+hi ALESignColumnWithErrors guibg=#333333
+
+"<<
 
 if has("gui_running")
    set guioptions-=m
@@ -146,6 +160,9 @@ cnoreabbrev wf  call SaveBuffer(4)
 
 cnoreabbrev qt  tabclose
 " Like :qa, but only closes the current tab
+
+cnoreabbrev <expr> q (getcmdtype() == ':' && getcmdline() =~ '^q$' && v:char != '!')? 'call <SID>Quit()' : 'q'
+" Intelligently quits out of quickfixes automatically
 
 cnoreabbrev D Diffsplit
 " I use diffsplit a lot, might as well make it easer to type
@@ -250,8 +267,8 @@ inoremap <C-p> <C-r>"
 vnoremap J j
 vnoremap K k
 
-nnoremap <silent><A-J><A-J> :call ParagraphToEightyChars()<CR>
-nnoremap <silent><A-J><A-K> :call ParagraphToEightyChars(1)<CR>
+nnoremap <silent><A-J><A-K> :call ParagraphToEightyChars()<CR>
+nnoremap <silent><A-J><A-J> :call ParagraphToEightyChars(1)<CR>
 nnoremap <silent>J maJ`a
 " Keep the cursor in the same place when doing a Join
 
@@ -277,7 +294,7 @@ inoremap <C-s>   <C-o>:vertical res +10<CR>
 " Increases size of splits incrementally
 nnoremap <expr> <C-a> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
 nnoremap <expr> <C-x> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
-" TODO: has problems when there are actual x's in the preceeding text.
+" TODO: hax problems when there are actual x's in the preceeding text.
 " Makes hex digits show up capital when auto-incrementing/decrementing
 
 nnoremap <A-y>   @q
@@ -316,8 +333,8 @@ cnoremap <A-k> <Up>
 cnoremap <A-j> <Down>
 nnoremap <expr> <S-A-w> &diffopt=~'iwhite'? ":set diffopt-=iwhite<CR>" : ":set diffopt+=iwhite<CR>"
 " Toggles whitespace diffing.
-noremap  <expr> <A-u> &diff? "]c" : "<C-d>"
-noremap  <expr> <A-i> &diff? "[c" : "<C-u>"
+nnoremap  <expr> <A-u> &diff? "]c" : "<C-d>"
+nnoremap  <expr> <A-i> &diff? "[c" : "<C-u>"
 " Move half a page down and up respectively
 "  or (when in a diff) move to next/previous difference
 nnoremap <A-n>   .n
@@ -386,8 +403,8 @@ nnoremap <A-/> :!start gvim<CR>
 nnoremap <A-8>   :exec "ProjectGrep \\<". expand('<cword>') ."\\>"<CR>
 nnoremap g<A-8>  :exec "ProjectGrep ". expand('<cword>')<CR>
 " * vimgrep: works like * but greps the current directory instead of just the file
-nnoremap <S-A-n>  :call NextQuickFix()<CR>
-nnoremap <S-A-p>  :call NextQuickFix(1)<CR>
+nnoremap <A-N>  :call NextQuickFix()<CR>
+nnoremap <A-P>  :call NextQuickFix(1)<CR>
 " Jumps to the next/previous item in the quickfix
 nnoremap <S-CR>   :set switchbuf+=newtab<CR><CR>:set switchbuf-=newtab<CR>
 " Shift+Enter opens files from quickfix in a new tab
@@ -432,6 +449,10 @@ nnoremap <F9>    :%MkVimball! TumblerVimball<CR>
 nnoremap <S-F12> :call RemoveTrailingWhitespace() <BAR> retab<CR>
 inoremap <S-F12> <C-o>:call RemoveTrailingWhitespace() <BAR> retab<CR>
 " Removes all trailing whitespace in file
+
+nnoremap <silent><A-0> :call setqflist([]) \| cclose<CR>
+" Closes and wipes the quickfix so we can more easily traverse the location list.
+" (See <A-N> and <A-P>
 
 inoremap <S-Tab> <Esc>^<<a
 " Makes Shift+Tab work like expected
@@ -897,12 +918,23 @@ function! NextQuickFix(...)
          cn
       endif
    catch /^Vim\%((\a\+)\)\=:E42/
-      " Catch no error file errors and redirect to location list
-      if (a:0 > 0)
-         lp
-      else
-         lne
-      endif
+      try
+         " Catch no error file errors and redirect to location list
+         if (a:0 > 0)
+            lp
+         else
+            lne
+         endif
+         " If all this fails then try to find the next ALE error
+      catch /^Vim\%((\a\+)\)\=:E776/
+         if exists('g:loaded_ale')
+            if (a:0 > 0)
+               ALEPrevious
+            else
+               ALENext
+            endif
+         endif
+      endtry
    catch /^Vim\%((\a\+)\)\=:E553/
    endtry
 endfunction
@@ -966,7 +998,7 @@ endfunction
 function! OpenNewTabWithNetrw()
    let l:tmp = expand('%')
    Te
-   exe "normal /".l:tmp."\r"
+   exe "normal /^".l:tmp."$\r"
    if exists('g:cvsnetrwIntegration')
       call UpdateCVSHilighting()
    endif
@@ -1044,6 +1076,37 @@ function! SetLineEndings()
    " buffer, but only if the file is modifiable) Redefine this function if you
    " don't like this functionality.
 endfunction
+
+function! s:Quit()
+   let savedWindow = winnr()
+   if (savedWindow + 1 <= winnr('$'))
+      exec savedWindow+1 . " wincmd w"
+      if (exists('w:quickfix_title'))
+         quit
+      else
+         exec savedWindow . " wincmd w"
+      endif
+   endif
+   quit
+endfunction
+
+"<
+
+"> Plugins
+" Using vim-plug as my plugin manager (https://github.com/junegunn/vim-plug)
+call plug#begin('~/vimfiles/vim-plug_plugin')
+
+" Vim linting
+"Plug 'vim-syntastic/syntastic'
+Plug 'w0rp/ale'
+
+" Linking vim help resources online
+Plug 'Carpetsmoker/helplink.vim'
+
+" Graphical undo tree
+Plug 'mbbill/undotree'
+
+call plug#end()
 "<
 
 let g:Tumbler_vimrc = 1
