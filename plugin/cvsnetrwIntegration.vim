@@ -129,7 +129,7 @@ function! UpdateCVSHilighting()
             if (currentLine =~ '.*/$')
                if (CVSstatusFileExists('./'.currentLine, 'cvs'))
                   let innerMod = readfile(ReturnCVSstatusFile('./'.currentLine, 'cvs'), '', 1)
-                  if (innerMod[0] =~ '>>MOD<<')
+                  if (len(innerMod) > 0 && innerMod[0] =~ '>>MOD<<')
                      " If innerMod[0] has a shorter distance to a modfied file
                      " record the shorter one.
                      if (len(innerMod[0]) < len(innerModSave) || innerModSave == '')
