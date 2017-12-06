@@ -2,11 +2,9 @@
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 07/12/2017 09:42 AM
-let s:Version = 2.11
+let s:Version = 2.13
 
 "TODO Add operation for the edit command
-"TODO Did I really need to make ReturnProject return a list or could I have
-"     just included the root in the dictionary??
 
 if (exists("g:loaded_projectManager") && (g:loaded_projectManager >= s:Version))
    finish
@@ -1370,6 +1368,7 @@ function! s:ProjectVimGrep(searchWord)
    exe "lvimgrep /" . a:searchWord."/j " . searchDirs
    lw
    exe "normal! \<C-W>j\<CR>"
+   echom a:searchWord
    let @/ = a:searchWord . '\c'
    cclose
    call setqflist([])
@@ -1492,8 +1491,11 @@ function! s:TraverseCtag(...)
       else
          " Base case: Tried but couldn't generate c-tags.
          call s:EchoError(matchstr(v:exception, '\(E\d\+:\s*\)\@<=\S.*$'))
+
          "   Quit superfluous buffer
-         quit
+         if (winnr("$") > initialWinNum)
+            quit
+         endif
       endif
    catch /^Vim\%((\a\+)\)\=:E426/
       "Tag not found

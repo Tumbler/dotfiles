@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/04/2017 03:27 PM
+" Last Edited: 12/04/2017 02:53 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 
@@ -98,6 +98,7 @@ set omnifunc=syntaxcomplete#Complete
 " Attempt to intelligently fill the omnicomplete by filetype
 
 set formatoptions+=jr
+set formatoptions-=o
 " Remove extra comment headers when [J]oining
 " When in a comment, [r]eturn will automatically add a comment header
 
@@ -490,7 +491,7 @@ augroup Tumbler
 
    autocmd BufReadPost * if (&filetype != 'qf' && !exists('b:ColorColumnID')) | let b:ColorColumnID = matchadd('ColorColumn', '\%81v.') | endif
    " Highlight the 81st character on the line if it's not the quickfix.
-   autocmd FilterWritePost * if (&diff && exists('b:ColorColumnID')) | call matchdelete(b:ColorColumnID) | unlet b:ColorColumnID |endif
+   autocmd FilterWritePost * if (&diff && exists('b:ColorColumnID')) | call matchdelete(b:ColorColumnID) | unlet b:ColorColumnID | endif
    " When diffing take out the coloring because it looks like diff highlighting.
 
    autocmd BufReadPre  * nmap<buffer>  <A-c>   I//<Esc>$<A-j>

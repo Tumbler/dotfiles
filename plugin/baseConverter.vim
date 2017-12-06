@@ -2,7 +2,7 @@
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 03/07/2017 02:40 PM
-let s:Version = 1.04
+let s:Version = 1.05
 
 " TODO: Remove unnecessary <SID>s
 

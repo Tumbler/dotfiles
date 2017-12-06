@@ -2,7 +2,7 @@
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 07/14/2017 02:17 PM
-let s:Version = 2.04
+let s:Version = 2.05
 
 " TODO: Add copying of files/dirs (essentially dp and do)
 " TODO: Remove unnecessary <SID>s

@@ -2,7 +2,7 @@
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 12/13/2016 03:01 PM
-" Version: 1.5
+" Version: 1.6
 
 " TODO: Community plugin standards
 

@@ -1,12 +1,11 @@
 "@Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 12/16/2016 01:13 PM
-" Version: 2.2
+" Version: 2.3
 
 " Note: This plugin is merely an extension to the "cvsmenu" plugin. It will
 "   not work without it! You can find it here:
 "   http://www.vim.org/scripts/script.php?script_id=58
-" TODO: Colors for dirs seem inconsistant... (Fixed once such issue. Keeping an eye out for others...)
 " TODO: Colors might be taking too much time. See if we can make that any better.
 " TODO: Community plugin standards
 " TODO: EchoError
