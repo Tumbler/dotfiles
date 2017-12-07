@@ -1,8 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 07/12/2017 09:42 AM
-let s:Version = 2.13
+" Last Edited: 12/07/2017 03:45 PM
+let s:Version = 2.14
 
 "TODO Add operation for the edit command
 
@@ -37,7 +37,7 @@ command! -nargs=1 -complete=custom,<SID>ProjectCompletion ProjSelect call <SID>E
 " Selects a project so you don't have to go into the manager
 command! -nargs=1 -complete=tag DirectorySearch :call <SID>DirSearch('<args>')
 " Brings up the Directory Search Prompt (See DirSearch)
-command! -nargs=1 -complete=tag ProjectGrep :call <SID>ProjectVimGrep('<args>')
+command! -nargs=1 -complete=tag ProjectGrep :call <SID>ProjectVimGrep('<args>', [])
 " Similar to DirectorySearch but without as much pre-processing. (Use this in mappings)
 command! -nargs=1 -complete=tag Tag :call <SID>Tag('<args>')
 " Just does a :tag, but makes sure to setlocal tags= first.
@@ -1308,15 +1308,22 @@ endfunction
 "     input   - void
 "     returns - [string] A string containing all properly formated directories
 "               from the current project.
-function! s:FormatVimGrepFiles(dirList)
+function! s:FormatVimGrepFiles(dirList, typeList)
    let myReturnString = ""
    if len(a:dirList) > 0
       for dir in a:dirList
-         let myReturnString .= " " . dir . "/*"
+         if (empty(a:typeList))
+            let myReturnString .= " ". dir ."/*"
+         else
+            for extension in a:typeList
+               let myReturnString .= ' '. dir.'/*.'. extension .' '
+            endfor
+         endif
       endfor
    else
       let myReturnString = './*'
    endif
+   echom myReturnString
    return myReturnString
 endfunction
 
@@ -1338,7 +1345,7 @@ endfunction
 "   brief: Performs an lvimgrep on the current project
 "     input   - searchWord: [string] What to search for
 "     returns - void
-function! s:ProjectVimGrep(searchWord)
+function! s:ProjectVimGrep(searchWord, typeList)
    let g:ale_enabled = 0
    let g:projectManager_DirSearchActive = 1
    " If ale is installed we need to disable it, because it tries to lint
@@ -1351,7 +1358,7 @@ function! s:ProjectVimGrep(searchWord)
    let projectRoot = ReturnedProjectStruct[1]
    let dirs = ProjectManager_ReturnProjectDirectories(project.name)
 
-   let searchDirs = s:FormatVimGrepFiles(dirs)
+   let searchDirs = s:FormatVimGrepFiles(dirs, a:typeList)
    exe "cd " . projectRoot
    " Change directory so that our relative projects can have the correct
    "   starting point
@@ -1408,6 +1415,7 @@ function! s:DirSearch(input)
    if len(a:input)
       try
          let search = ""
+         let extensions = ""
          let recurse = 0
          if     (a:input =~# '\(\\\)\@<!\\r')
             " Found "\r" in pattern, recurse this directory
@@ -1421,10 +1429,15 @@ function! s:DirSearch(input)
          else
             let search = a:input
          endif
+         if (search =~# '\(\\\)\@<!\\e')
+            " Found "\e" in pattern, specifies file types.
+            let extensions = split(matchstr(search, '\(\\\)\@<!\\e\zs.*'), ',')
+            let search = substitute(search, '\(\\\)\@<!\\e.*', "", "g")
+         endif
          if (recurse)
-            exec "lvimgrep /" . search . "/j ./**"
+            exec "lvimgrep /" . search . "/j ". s:FormatVimGrepFiles("./**", extensions)
          else
-            call s:ProjectVimGrep(search)
+            call s:ProjectVimGrep(search, extensions)
          endif
          lw
          let @/ = search
@@ -1553,20 +1566,20 @@ function! s:GenerateCTags()
    let dirs = ProjectManager_ReturnProjectDirectories(currentwd)
    let microchipDirectoryExist = 0
    if len(dirs) == 0
-      exe "silent!! ctags " . s:FormatVimGrepFiles(dirs)
+      exe "silent!! ctags " . s:FormatVimGrepFiles(dirs, [])
    else
       if isdirectory(s:ExpandDir("..\Microchip", 0))
          let microchipDirectoryExist = 1
       endif
       let excludes = s:FormatCtagExcludes(ProjectManager_ReturnProject(currentwd)[0])
       if (s:ExpandDir(dirs[0], 0) == currentwd)
-         exe "silent!! ctags " . excludes .' '. s:FormatVimGrepFiles(dirs)
+         exe "silent!! ctags " . excludes .' '. s:FormatVimGrepFiles(dirs, [])
          if (microchipDirectoryExist)
             exe "silent!! ctags -aR ../Microchip/*"
          endif
       else
          exe "cd " . s:ExpandDir(dirs[0], 0)
-         exe "! ctags " . excludes .' '. s:FormatVimGrepFiles(dirs)
+         exe "! ctags " . excludes .' '. s:FormatVimGrepFiles(dirs, [])
          if (microchipDirectoryExist)
             exe "silent!! ctags -aR ../Microchip/*"
          endif
