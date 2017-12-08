@@ -1,10 +1,8 @@
 " @Tracked
 " Base Conversion Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/07/2017 02:40 PM
-let s:Version = 1.05
-
-" TODO: Remove unnecessary <SID>s
+" Last Edited: 12/08/2017 05:02 PM
+let s:Version = 1.06
 
 " Anti-inclusion guard and version
 if (exists("g:loaded_baseConverter") && (g:loaded_baseConverter >= s:Version))
@@ -48,12 +46,12 @@ function! s:CheckConversions()
    let wordAfterCursor = matchstr(getline('.'), '\c\%'.(column-1).'c[0-9a-fx]\+\.\=\x\+')
    if (strlen(wordAfterCursor) == 0)
       " None of the word is after the cursor
-      let base = <SID>FindBase(wordBeforeCursor)
-      let rawNumber = <SID>StripLeader(wordBeforeCursor, base)
+      let base = s:FindBase(wordBeforeCursor)
+      let rawNumber = s:StripLeader(wordBeforeCursor, base)
       let beginingColumn = col('.') - strlen(wordBeforeCursor)
 
-      if (base != 0 && <SID>IsNumber(rawNumber, base) && rawNumber =~ '\S\{2,}')
-         call <SID>ListConversions(base, rawNumber, beginingColumn, wordBeforeCursor)
+      if (base != 0 && s:IsNumber(rawNumber, base) && rawNumber =~ '\S\{2,}')
+         call s:ListConversions(base, rawNumber, beginingColumn, wordBeforeCursor)
       endif
    else
       " Some of the number resides after the cursor... completing not possible
@@ -73,15 +71,15 @@ endfunction
 "    returns - void
 function! s:ListConversions(base, rawNumber, column, origWord)
    let label = '   ' . {2: 'BIN', 8: 'OCT', 10: 'DEC', 16: 'HEX'}[a:base]
-   let decNumber = <SID>BaseConversion(a:rawNumber, a:base, 10)
+   let decNumber = s:BaseConversion(a:rawNumber, a:base, 10)
    call complete(a:column, [
         \ {'word':a:origWord, 'menu':label},
-        \ {'word':<SID>BaseConversion(a:rawNumber, a:base,  2, 1), 'menu': '   BIN'},
-        \ {'word':<SID>BaseConversion(a:rawNumber, a:base,  8, 1), 'menu': '   OCT'},
-        \ {'word':<SID>BaseConversion(a:rawNumber, a:base, 10, 1), 'menu': '   DEC'},
-        \ {'word':<SID>BaseConversion(a:rawNumber, a:base, 16, 1), 'menu': '   HEX'},
+        \ {'word':s:BaseConversion(a:rawNumber, a:base,  2, 1), 'menu': '   BIN'},
+        \ {'word':s:BaseConversion(a:rawNumber, a:base,  8, 1), 'menu': '   OCT'},
+        \ {'word':s:BaseConversion(a:rawNumber, a:base, 10, 1), 'menu': '   DEC'},
+        \ {'word':s:BaseConversion(a:rawNumber, a:base, 16, 1), 'menu': '   HEX'},
         \ (decNumber > 31 && decNumber < 127)?
-        \ {'word':nr2char(<SID>BaseConversion(a:rawNumber, a:base, 10, 1)), 'menu': ' ASCII'} : {}])
+        \ {'word':nr2char(s:BaseConversion(a:rawNumber, a:base, 10, 1)), 'menu': ' ASCII'} : {}])
 endfunction
 
 " HexConverter ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -96,10 +94,10 @@ function! s:HexConverter(wordUnderCursor, ...)
    if !exists('t:baseConverter_lastCheck')
       let t:baseConverter_lastCheck = ''
    endif
-   let base = <SID>FindBase(a:wordUnderCursor)
-   let rawNumber = <SID>StripLeader(a:wordUnderCursor, base)
+   let base = s:FindBase(a:wordUnderCursor)
+   let rawNumber = s:StripLeader(a:wordUnderCursor, base)
    if (strlen(a:wordUnderCursor) > 0)
-      let N = strlen(<SID>BaseConversion(rawNumber, base, 2, 1))
+      let N = strlen(s:BaseConversion(rawNumber, base, 2, 1))
    endif
    let shift = 0
    if (a:0 > 0)
@@ -117,7 +115,7 @@ function! s:HexConverter(wordUnderCursor, ...)
       endif
    endif
 
-   if (base != 0 && <SID>IsNumber(rawNumber, base) && a:wordUnderCursor =~ '\S\{2,}' && (a:0 || (t:baseConverter_lastCheck != a:wordUnderCursor)) && strlen(a:wordUnderCursor) > 0)
+   if (base != 0 && s:IsNumber(rawNumber, base) && a:wordUnderCursor =~ '\S\{2,}' && (a:0 || (t:baseConverter_lastCheck != a:wordUnderCursor)) && strlen(a:wordUnderCursor) > 0)
       if (!t:baseConverter_inConvertMode)
          set cmdheight=5
          if (shift)
@@ -125,10 +123,10 @@ function! s:HexConverter(wordUnderCursor, ...)
          endif
          let t:baseConverter_inConvertMode = 1
       endif
-      exe "echo '  BIN: ' . printf('%".N."s', <SID>BaseConversion(rawNumber, base, 2, 1)) .'\n'." .
-          \    "'  OCT: ' . printf('%".N."s', <SID>BaseConversion(rawNumber, base, 8, 1)) .'\n'." .
-          \    "'  DEC: ' . printf('%".N."s', <SID>BaseConversion(rawNumber, base, 10, 1)).'\n'." .
-          \    "'  HEX: ' . printf('%".N."s', <SID>BaseConversion(rawNumber, base, 16, 1))"
+      exe "echo '  BIN: ' . printf('%".N."s', s:BaseConversion(rawNumber, base, 2, 1)) .'\n'." .
+          \    "'  OCT: ' . printf('%".N."s', s:BaseConversion(rawNumber, base, 8, 1)) .'\n'." .
+          \    "'  DEC: ' . printf('%".N."s', s:BaseConversion(rawNumber, base, 10, 1)).'\n'." .
+          \    "'  HEX: ' . printf('%".N."s', s:BaseConversion(rawNumber, base, 16, 1))"
    else
       if (t:baseConverter_inConvertMode)
          set cmdheight=1
@@ -150,15 +148,15 @@ endfunction
 "    input   - number: [string] The number from which to determine the base
 "    returns - [int] The base number (2 for binary, 10 for decimal, etc...)
 function! s:FindBase(number)
-   if     (a:number[0:1] == '0b' && <SID>IsNumber(a:number[2:], 2))
+   if     (a:number[0:1] == '0b' && s:IsNumber(a:number[2:], 2))
       return 2
-   elseif (a:number[0:1] =~ '0[0-7]' && <SID>IsNumber(a:number[2:], 8))
+   elseif (a:number[0:1] =~ '0[0-7]' && s:IsNumber(a:number[2:], 8))
       return 8
-   elseif (a:number[0:1] =~ '0x\c' && <SID>IsNumber(a:number[2:], 16))
+   elseif (a:number[0:1] =~ '0x\c' && s:IsNumber(a:number[2:], 16))
       return 16
-   elseif (<SID>IsNumber(a:number, 10))
+   elseif (s:IsNumber(a:number, 10))
       return 10
-   elseif (<SID>IsNumber(a:number, 16))
+   elseif (s:IsNumber(a:number, 16))
       return 16
    else
       return 0
@@ -189,14 +187,14 @@ function! s:BaseConversion(num, inBase, outBase, ...)
       call EchoError("Out base must be between 2 and 16!")
    else
       let splitNum = split(a:num, '\.')
-      let decNum = <SID>Base2Dec(splitNum[0], a:inBase)
+      let decNum = s:Base2Dec(splitNum[0], a:inBase)
       let decimalPrecision = 0
       if (len(splitNum) > 1)
-         let decNum .= '.'.<SID>Frac2Dec(splitNum[1], a:inBase)
+         let decNum .= '.'.s:Frac2Dec(splitNum[1], a:inBase)
          let decimalPrecision = len(splitNum[1])
       endif
       let prefix = get(s:prefixes, a:outBase, '')
-      return ((a:0)? prefix : "") . <SID>Decimal2Base(decNum, a:outBase, decimalPrecision)
+      return ((a:0)? prefix : "") . s:Decimal2Base(decNum, a:outBase, decimalPrecision)
    endif
 endfunction!
 
@@ -212,16 +210,16 @@ function! s:Decimal2Base(number, base, decimalPrecision)
    let result = 0
    if (len(splitNum) > 1)
       let precision = (a:decimalPrecision > 4) ? (a:decimalPrecision) : 4
-      let result = <SID>Frac2Base('.'.splitNum[1], a:base, a:decimalPrecision)
+      let result = s:Frac2Base('.'.splitNum[1], a:base, a:decimalPrecision)
       if (result == 1)
-         let result = <SID>AddLeadingZeros(<SID>Dec2Base(splitNum[0]+1, a:base), a:base)
+         let result = s:AddLeadingZeros(s:Dec2Base(splitNum[0]+1, a:base), a:base)
       else
-         let result = <SID>AddLeadingZeros(<SID>Dec2Base(splitNum[0], a:base), a:base) . result
+         let result = s:AddLeadingZeros(s:Dec2Base(splitNum[0], a:base), a:base) . result
       endif
       " Remove any trailing zeros
       return substitute(result, '\..*\zs0\+$', '', '')
    else
-      return <SID>AddLeadingZeros(<SID>Dec2Base(splitNum[0], a:base), a:base)
+      return s:AddLeadingZeros(s:Dec2Base(splitNum[0], a:base), a:base)
    endif
 endfunction
 
@@ -395,9 +393,9 @@ function! s:PrintASCIIChart()
          echon number
          echon "  "
          echohl PREPROC
-         echon <SID>BaseConversion(number, 10, 16) . " "
+         echon s:BaseConversion(number, 10, 16) . " "
          echohl NONE
-         let oct = <SID>BaseConversion(number, 10, 8)
+         let oct = s:BaseConversion(number, 10, 8)
          echon repeat(" ", 3-len(oct))
          echon oct . "  "
          echohl PREPROC
