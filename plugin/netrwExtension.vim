@@ -1,10 +1,14 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/13/2016 03:01 PM
-" Version: 1.6
+" Last Edited: 12/08/2017 05:50 PM
+let s:Version = 1.61
 
-" TODO: Community plugin standards
+" Anti-inclusion guard and version
+if (exists("g:loaded_netwExtension") && (g:loaded_netwExtension >= s:Version))
+   finish
+endif
+let g:loaded_netwExtension = s:Version
 
 let g:netrwExtension = 1
 
@@ -12,10 +16,10 @@ let g:vimpathmemFile = $HOME.'/vimfiles/.vimpathmem'
 
 let s:User_autoread = &autoread
 
-command! -nargs=1 -complete=dir Goto :call ManualExplore('<args>')
+command! -nargs=1 -complete=dir Goto :call <SID>ManualExplore('<args>')
 " Allows to you jump to any directory without having to get there through netrw
 
-nnoremap - :call SmartExplore('file')<CR>
+nnoremap - :call <SID>SmartExplore('file')<CR>
 " Press minus to bring up File explorer
 
 let s:netrw_pathmemNum = 200
@@ -24,8 +28,8 @@ let s:netrw_pathmemNum = 200
 if has("autocmd")
 augroup netrw_Extension
    au!
-   autocmd VimEnter     * call CheckForPathMem()
-   autocmd filetype netrw call Remap_netrw()
+   autocmd VimEnter     * call <SID>CheckForPathMem()
+   autocmd filetype netrw call <SID>Remap_netrw()
 augroup END
 endif
 
@@ -45,12 +49,11 @@ augroup NetrwExtension
 augroup END
 endif
 
-"  SmartExplore <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" SmartExplore ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Opens explorer pointing at file or dir we just came out of.
-" TODO: Seems to be missing files sometimes and instead going to top of file...
-" TODO: Figured it out! When you back out of a file but your pwd isn't the same
-" as the file your editing, this will cause it to miss the reposition.
-function! SmartExplore(origin)
+"     input   - origin: [string] 'file' or 'netrw' based on where we started
+"     returns - void
+function! s:SmartExplore(origin)
    " If we're in a diff, then close the other window before continuing
    if (&diff)
       diffoff!
@@ -63,10 +66,12 @@ function! SmartExplore(origin)
       call <SID>EchoError("Save changes first!")
       return
    endif
-   if g:netrw_first
+   if (g:netrw_first && expand('%') == '')
       exe "cd " . g:netrw_startingDir
-      let g:netrw_first = 0
+   else
+      exe "cd " . expand("%:p:h")
    endif
+   let g:netrw_first = 0
    "  If empty document then don't bother
    if (line('$') == 1 && getline(1) == '')
       if !(s:User_autoread)
@@ -76,7 +81,7 @@ function! SmartExplore(origin)
       else
          Explore
       endif
-      call RememberLocation()
+      call s:RememberLocation()
       if (&scrolloff =~# '0')
          normal zz
       endif
@@ -88,7 +93,7 @@ function! SmartExplore(origin)
       else
          let l:currentFilename = @%
       endif
-      call SyncDirs()
+      call s:SyncDirs()
       if (a:origin == 'netrw')
          if !(s:User_autoread)
             set autoread
@@ -106,14 +111,14 @@ function! SmartExplore(origin)
             Explore
          endif
       endif
-      call search('^' . EscapeRegex(l:currentFilename) . '\*\=$')
-      call AddToPathList(l:currentFilename)
+      call search('^' . s:EscapeRegex(l:currentFilename) . '\*\=$')
+      call s:AddToPathList(l:currentFilename)
       if (&scrolloff =~# '0')
          normal zz
       endif
       normal C
    endif
-   if exists('g:cvsnetrwIntegration')
+   if exists('g:loaded_cvsnetrwIntegration')
       call UpdateCVSHilighting()
    endif
 endfunction
@@ -121,21 +126,21 @@ endfunction
 "  SmartInspect <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Explores to file or dir under cursor, centers the screen and saves
 "          the choice so we can remember it next time we're here.
-function! SmartInspect()
+function! s:SmartInspect()
    " Grabs line up to the first tab
    let file = matchstr(getline('.'), '^[^\t]*')
-   call AddToPathList(file)
-   call SyncDirs()
+   call s:AddToPathList(file)
+   call s:SyncDirs()
 
    if (file =~ '/$')
       exec "call netrw#LocalBrowseCheck('". <SID>ExpandDir(file, 1). "')"
       if (&scrolloff =~# '0')
          normal zz
       endif
-      if exists('g:cvsnetrwIntegration')
+      if exists('g:loaded_cvsnetrwIntegration')
          call UpdateCVSHilighting()
       endif
-      call RememberLocation()
+      call s:RememberLocation()
       normal C
    else
       let file = substitute(file, '\*', '', 'g')
@@ -155,7 +160,7 @@ endfunction
 "  ManualExplore ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Jumps to a directory directly
 "    input - dir [String] The directory to jump to
-function! ManualExplore(dir)
+function! s:ManualExplore(dir)
    let myDir = <SID>ExpandDir(a:dir, 1)
    if isdirectory(myDir)
       call netrw#LocalBrowseCheck(myDir)
@@ -164,7 +169,7 @@ function! ManualExplore(dir)
    endif
 endfunction
 
-function! SyncDirs()
+function! s:SyncDirs()
    if (&ft == 'netrw')
       exe "cd " . b:netrw_curdir
    else
@@ -176,7 +181,7 @@ endfunction
 "  AddToPathList ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Adds file to remembered paths file so we can remember that decision
 "          next time we're here in netrw.
-function! AddToPathList(file)
+function! s:AddToPathList(file)
    let paths = readfile(g:vimpathmemFile)
    let mycwd = b:netrw_curdir
    let idx = 0
@@ -198,7 +203,7 @@ endfunction
 "  RememberLocation <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Check list to see if we've made a choice at this path before. If we
 "          have, then point to it.
-function! RememberLocation()
+function! s:RememberLocation()
    for line in readfile(g:vimpathmemFile)
       let path = substitute(line, '\(.*\)\@<= | .*', '', '')
       let file = substitute(line, '.* | \(.*\)\@=', '', '')
@@ -211,7 +216,7 @@ endfunction
 
 "  CheckForPathMem ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Initialize file and variables for path memory.
-function! CheckForPathMem()
+function! s:CheckForPathMem()
    if !filereadable(g:vimpathmemFile)
       " If there is no file, then create one"
       if !isdirectory($HOME.'/vimfiles')
@@ -224,25 +229,22 @@ endfunction
 "  Remap_netrw ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: When entering a netrw buffer, remap these keys so we can have more
 "          control over netrw.
-function! Remap_netrw()
-   nnoremap <buffer> -    :call SmartExplore('netrw')<CR>
-   nnoremap <buffer> <CR> :call SmartInspect()<CR>
-   nnoremap <buffer> X    :call ExecuteRecognizedFile()<CR>
-   nnoremap <buffer> dd   :call DirDiff()<CR>
-   nnoremap <buffer> dld  :call DirDiff(1)<CR>
-   nnoremap <buffer> /    :call DirFind()<CR>
-   nmap     <buffer> n    /<UP><CR>
-   if (exists('g:cvsnetrwIntegration'))
-      nnoremap <buffer> u :call RecursiveUpdate('./'.expand('<cWORD>'))<CR>
-   endif
-   call timer_start(1, 'Remap_netrwAdditionalOptions')
+function! s:Remap_netrw()
+   exe "nnoremap <buffer> -    :call <SID>SmartExplore('netrw')<CR>"
+   exe "nnoremap <buffer> <CR> :call <SID>SmartInspect()<CR>"
+   exe "nnoremap <buffer> X    :call ExecuteRecognizedFile()<CR>"
+   exe "nnoremap <buffer> dd   :call DirDiff()<CR>"
+   exe "nnoremap <buffer> dld  :call DirDiff(1)<CR>"
+   exe "nnoremap <buffer> /    :call <SID>DirFind()<CR>"
+   exe "nmap     <buffer> n    /<UP><CR>"
+   "call timer_start(1, '<SID>Remap_netrwAdditionalOptions')
 endfunction
 
 "  Remap_netrwAdditionalOptions <><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Netrw sets a lot of its own options so if we do them immediately
 "          they just get reset. Putting them on a timer allows us to set them
 "          after netrw and claim the last word.
-function! Remap_netrwAdditionalOptions(timer)
+function! s:Remap_netrwAdditionalOptions(timer)
    "set buftype=nofile
 endfunction
 
@@ -251,7 +253,7 @@ endfunction
 "          completion and doesn't pollute the search register.
 "    input   - void
 "    returns - void
-function! DirFind()
+function! s:DirFind()
    if (&ft == 'netrw')
       " Only works in netrw
       let usr = input("/", "", "file")
@@ -262,7 +264,7 @@ endfunction
 "  EscapeRegex ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Backslash escapes the characters for a "magic mode" regex. Returns
 "          escaped string.
-function! EscapeRegex(input)
+function! s:EscapeRegex(input)
    return escape(a:input, '\^$.*~[&')
 endfunction
 
@@ -297,4 +299,25 @@ function! s:EchoError(message)
    echohl NORMAL
 endfunction
 
+" The MIT License (MIT)
+"
+" Copyright © 2017 Warren Terrall
+"
+" Permission is hereby granted, free of charge, to any person obtaining a copy
+" of this software and associated documentation files (the "Software"), to
+" deal in the Software without restriction, including without limitation the
+" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+" sell copies of the Software, and to permit persons to whom the Software is
+" furnished to do so, subject to the following conditions:
+"
+" The above copyright notice and this permission notice shall be included in
+" all copies or substantial portions of the Software.
+"
+" The software is provided "as is", without warranty of any kind, express or
+" implied, including but not limited to the warranties of merchantability,
+" fitness for a particular purpose and noninfringement. In no event shall the
+" authors or copyright holders be liable for any claim, damages or other
+" liability, whether in an action of contract, tort or otherwise, arising
+" from, out of or in connection with the software or the use or other dealings
+" in the software.
 "<< End of netrw extension plugin <><><><><><><><><><><><><><><><><><><><><><><>
