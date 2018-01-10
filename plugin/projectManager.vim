@@ -1435,7 +1435,7 @@ function! s:DirSearch(input)
             let search = substitute(search, '\(\\\)\@<!\\e.*', "", "g")
          endif
          if (recurse)
-            exec "lvimgrep /" . search . "/j ". s:FormatVimGrepFiles("./**", extensions)
+            exec "lvimgrep /" . search . "/j ". s:FormatVimGrepFiles(["./**"], extensions)
          else
             call s:ProjectVimGrep(search, extensions)
          endif
