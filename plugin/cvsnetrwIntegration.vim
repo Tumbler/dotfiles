@@ -31,6 +31,7 @@ nnoremap <A-C> :call <SID>CommitWithCVS()<CR>
 nnoremap <A-A> :call <SID>AddWithCVS()<CR>
 nnoremap <A-U> :call <SID>UpdateWithCVS()<CR>
 nnoremap <A-R> :call <SID>UpdateColors()<CR>
+nnoremap <A-T> :call <SID>TagCheck()<CR>
 nnoremap <A--> :call <SID>StartCheck()<CR>
 nnoremap <A-_> :call <SID>StartCheck(1)<CR>
 
@@ -304,17 +305,21 @@ endfunction
 function! s:DiffWithCVS()
    if (! &diff && winnr('$') == 1)
       set visualbell
-      if (&filetype == 'netrw')
-         exe "normal \<CR>"
-         lclose
-         cclose
-         call CVSdiff()
-         exe "normal! \<C-W>L"
-         normal gg]c[c
-      else
-         call CVSdiff()
-         exe "normal! \<C-W>L"
-      endif
+      try
+         if (&filetype == 'netrw')
+            exe "normal \<CR>"
+            lclose
+            cclose
+            call CVSdiff()
+            exe "normal! \<C-W>L"
+            normal gg]c[c
+         else
+            call CVSdiff()
+            exe "normal! \<C-W>L"
+         endif
+      catch /^Vim\%((\a\+)\)\=:E803/
+         " ID not found error. It's wrong just ignore it.
+      endtry
       set scrolloff=9999
 
       if (winnr('$') != 1)
@@ -418,6 +423,31 @@ function! s:UpdateColors()
          call s:RecursiveUpdateColors(fnamemodify(cursor, ':h'))
          call s:StartCheck()
       endif
+   endif
+endfunction
+
+function! s:TagCheck()
+   if s:CVSstatusFileExists('.', 'cvs')
+      let filename = ''
+      let CVSfile = readfile(s:ReturnCVSstatusFile('.', 'cvs'))
+      for line in CVSfile
+         if line =~ 'MOD'
+            continue
+         elseif line =~ '^File:'
+            let filename = matchstr(line, '\(File: *\)\@<=\S\+')
+         endif
+      endfor
+
+      if (filename == '')
+         return
+      endif
+
+      let CVSoutput = system('cvs status -v ./'. filename)
+
+      for line in CVSoutput
+         S
+      endfor
+      echo CVSoutput
    endif
 endfunction
 
