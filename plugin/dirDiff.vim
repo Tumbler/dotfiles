@@ -1,9 +1,10 @@
 " @Tracked
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 07/14/2017 02:17 PM
+" Last Edited: 03/01/2018 03:36 PM
 let s:Version = 2.05
 
+" TODO: Need to fix manualExplore and SmartExplore not going to script-local versions
 " TODO: Add copying of files/dirs (essentially dp and do)
 " TODO: Remove unnecessary <SID>s
 " TODO: Dynamic update of diffness when you save files (Cause they might have changed)
@@ -779,30 +780,30 @@ function! s:HighlightDir(...)
          let UniqueList = b:containedUniqueFiles
       end
       for entry in CommonSameDirList
-         let entry = substitute(entry, '\.', '\\\.', '')
          let entry = substitute(entry, '/$', '', '')
+         let entry = s:EscapeRegex(entry)
          exe "syn match CommonSameDir '" . entry . "\\(/$\\)\\@='"
       endfor
       for entry in CommonDiffDirList
-         let entry = substitute(entry, '\.', '\\\.', '')
          let entry = substitute(entry, '/$', '', '')
+         let entry = s:EscapeRegex(entry)
          exe "syn match CommonDiffDir '" . entry . "\\(/$\\)\\@='"
       endfor
       for entry in UniqueDirList
-         let entry = substitute(entry, '\.', '\\\.', '')
          let entry = substitute(entry, '/$', '', '')
+         let entry = s:EscapeRegex(entry)
          exe "syn match UniqueDir '" . entry . "\\(/$\\)\\@='"
       endfor
       for entry in CommonSameList
-         let entry = substitute(entry, '\.', '\\\.', '')
+         let entry = s:EscapeRegex(entry)
          exe "syn match CommonSame '" . entry . "$'"
       endfor
       for entry in CommonDiffList
-         let entry = substitute(entry, '\.', '\\\.', '')
+         let entry = s:EscapeRegex(entry)
          exe "syn match CommonDiff '" . entry . "$'"
       endfor
       for entry in UniqueList
-         let entry = substitute(entry, '\.', '\\\.', '')
+         let entry = s:EscapeRegex(entry)
          exe "syn match Unique '" . entry . "$'"
       endfor
       if (&background == "dark")
@@ -1279,7 +1280,7 @@ endfunction
 "     input   - input: [string] The regex string to escape
 "     returns - [string] The resulting escaped regex string
 function! s:EscapeRegex(input)
-   return escape(a:input, '\^$.*~[&')
+   return escape(a:input, '\^$.*~[&' . "'")
 endfunction
 
 " EchoError <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
