@@ -1,8 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/07/2017 03:45 PM
-let s:Version = 2.14
+" Last Edited: 05/23/2018 11:01 AM
+let s:Version = 2.15
 
 "TODO Add operation for the edit command
 
@@ -26,10 +26,18 @@ augroup ProjectManager
 augroup END
 endif
 
-hi projectManagerArrows   cterm=BOLD ctermbg=bg ctermfg=28  gui=BOLD guibg=bg guifg=Yellow
-hi projectManagerDirs     cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
-hi projectManagerOptional cterm=NONE ctermbg=bg ctermfg=116 gui=NONE guibg=bg guifg=SkyBlue
-hi projectManagerExcludes cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
+try
+   hi projectManagerArrows   cterm=BOLD ctermbg=bg ctermfg=28  gui=BOLD guibg=bg guifg=Yellow
+   hi projectManagerDirs     cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
+   hi projectManagerOptional cterm=NONE ctermbg=bg ctermfg=116 gui=NONE guibg=bg guifg=SkyBlue
+   hi projectManagerExcludes cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
+catch /^Vim\%((\a\+)\)\=:E420/
+   " BG hasn't been set, we'll have to do without. (see :h E420)
+   hi projectManagerArrows   cterm=BOLD            ctermfg=28  gui=BOLD          guifg=Yellow
+   hi projectManagerDirs     cterm=NONE            ctermfg=120 gui=NONE          guifg=palegreen
+   hi projectManagerOptional cterm=NONE            ctermfg=116 gui=NONE          guifg=SkyBlue
+   hi projectManagerExcludes cterm=NONE            ctermfg=173 gui=NONE          guifg=peru
+endtry
 
 command! Proj call <SID>Project()
 " Brings up the Project Manager, um... Manager...
