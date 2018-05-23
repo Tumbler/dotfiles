@@ -1,16 +1,14 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/08/2017 05:50 PM
-let s:Version = 1.61
+" Last Edited: 05/23/2018 10:42 AM
+let s:Version = 1.62
 
 " Anti-inclusion guard and version
 if (exists("g:loaded_netwExtension") && (g:loaded_netwExtension >= s:Version))
    finish
 endif
 let g:loaded_netwExtension = s:Version
-
-let g:netrwExtension = 1
 
 let g:vimpathmemFile = $HOME.'/vimfiles/.vimpathmem'
 
@@ -25,14 +23,6 @@ nnoremap - :call <SID>SmartExplore('file')<CR>
 let s:netrw_pathmemNum = 200
 " Number of paths to remember when navigating using netrw
 
-if has("autocmd")
-augroup netrw_Extension
-   au!
-   autocmd VimEnter     * call <SID>CheckForPathMem()
-   autocmd filetype netrw call <SID>Remap_netrw()
-augroup END
-endif
-
 " Define g:netrw_startingDir in vimpref if you want a custom starting directory.
 if !exists('g:netrw_startingDir')
    if has("win32")
@@ -45,7 +35,9 @@ endif
 if has("autocmd")
 augroup NetrwExtension
    au!
-   autocmd VimEnter * let g:netrw_first = 1
+   autocmd VimEnter     * let g:netrw_first = 1
+   autocmd VimEnter     * call <SID>CheckForPathMem()
+   autocmd filetype netrw call <SID>Remap_netrw()
 augroup END
 endif
 
@@ -233,8 +225,10 @@ function! s:Remap_netrw()
    exe "nnoremap <buffer> -    :call <SID>SmartExplore('netrw')<CR>"
    exe "nnoremap <buffer> <CR> :call <SID>SmartInspect()<CR>"
    exe "nnoremap <buffer> X    :call ExecuteRecognizedFile()<CR>"
-   exe "nnoremap <buffer> dd   :call DirDiff()<CR>"
-   exe "nnoremap <buffer> dld  :call DirDiff(1)<CR>"
+   if (exists('g:loaded_dirDiffPlugin'))
+      exe "nnoremap <buffer> dd   :call dirDiff#DirDiff()<CR>"
+      exe "nnoremap <buffer> dld  :call dirDiff#DirDiff(1)<CR>"
+   endif
    exe "nnoremap <buffer> /    :call <SID>DirFind()<CR>"
    exe "nmap     <buffer> n    /<UP><CR>"
    "call timer_start(1, '<SID>Remap_netrwAdditionalOptions')
@@ -301,7 +295,7 @@ endfunction
 
 " The MIT License (MIT)
 "
-" Copyright © 2017 Warren Terrall
+" Copyright © 2018 Warren Terrall
 "
 " Permission is hereby granted, free of charge, to any person obtaining a copy
 " of this software and associated documentation files (the "Software"), to
