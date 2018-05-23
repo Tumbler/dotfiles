@@ -1,8 +1,9 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/04/2017 02:53 PM
+" Last Edited: 05/22/2018 04:08 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
+" TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
 
 "> Settings
 if (line('$') == 1 && getline(1) == '' && has("gui_running"))
@@ -98,7 +99,6 @@ set omnifunc=syntaxcomplete#Complete
 " Attempt to intelligently fill the omnicomplete by filetype
 
 set formatoptions+=jr
-set formatoptions-=o
 " Remove extra comment headers when [J]oining
 " When in a comment, [r]eturn will automatically add a comment header
 
@@ -188,16 +188,7 @@ command! -nargs=1 -complete=file Diffsplit diffsplit <args> | wincmd p
 command! Whitespace :call ReplaceBadWhitespaceInDir()
 " Replaces tabs and trailing whitespace in all files in a directory
 
-if filereadable($VIMRUNTIME . '/colors/oceannight.vim')
-   color oceannight
-elseif filereadable($HOME . '/.vim/colors/oceannight.vim')
-   color oceannight
-else
-   color desert
-endif
-" If the file exists, make the color scheme oceannight.
-" Public access:
-" https://drive.google.com/file/d/0B8PyjuTeepa8eUk2eEJhOHBLMWM/view?usp=sharing
+" Colorscheme moved to plugins so we can use a plugin manager.
 
 if !exists("syntax_on")
   syntax enable
@@ -278,15 +269,19 @@ inoremap <C-Space> <C-n>
 
 " Change Focus Between Split Windows
 nnoremap <C-j>  <C-W>j
+tnoremap <C-j>  <C-W>j
 inoremap <expr> <C-j>  pumvisible() ? "<Down>" : "<Esc><C-W>j"
    " If AutoComplete box is open tab through the menu, otherwise shift focus down
 nnoremap <C-k>  <C-W>k
+tnoremap <C-k>  <C-W>k
 inoremap <expr> <C-k>  pumvisible() ? "<Up>" : "<Esc><C-W>k"
    " If AutoComplete box is open tab through the menu, otherwise shift focus up
 nnoremap <C-h>  <C-W>h
+tnoremap <C-h>  <C-W>h
    " Left
 nnoremap <C-l>  <C-W>l
 inoremap <C-l>  <Esc><C-W>l
+tnoremap <C-l>  <C-W>l
    " Right
 nnoremap <C-d>   :res +10<CR>
 inoremap <C-d>   <C-o>:res +10<CR>
@@ -393,7 +388,7 @@ nnoremap <A-r>   :call OpenVimrc()<CR>GzR
 " Opens vimrc (this file) in new tab and jumps to the regular expression section for quick reference.
 nnoremap <A-.>   :pop<CR>
 " Goes to the previous location in the tag stack
-inoremap {{ {<Enter>}<Esc>O
+inoremap {{ {<Enter>}<Esc>k
 " Auto puts closing brace and indents you to the right place automatically
 nnoremap <A-z>   za
 " Toggles current fold (It doesn't seem like much of a shortcut but za is really hard to hit)
@@ -543,6 +538,7 @@ augroup Tumbler
 
    autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
    " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
+   autocmd BufReadPost *.xeh set ft=hex
 augroup END
 endif
 "<
@@ -1094,12 +1090,29 @@ endfunction
 "<
 
 "> Plugins
-" Using vim-plug as my plugin manager (https://github.com/junegunn/vim-plug)
-call plug#begin('~/vimfiles/vim-plug_plugin')
 
-" Vim linting
-"Plug 'vim-syntastic/syntastic'
-Plug 'w0rp/ale'
+if !isdirectory($HOME.'/vimfiles/autoload')
+   call mkdir($HOME.'/vimfiles/autoload')
+endif
+if !isdirectory($HOME.'/vimfiles/vim-plug_plugin')
+   call mkdir($HOME.'/vimfiles/vim-plug_plugin')
+   if has("autocmd")
+      autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
+      " If we're creating this dir then we also need to install any plugins that
+      " go in it.
+   endif
+endif
+
+" Using vim-plug as my plugin manager (https://github.com/junegunn/vim-plug)
+if !filereadable($HOME.'/vimfiles/autoload/plug.vim')
+   if has('win32')
+      silent!! bitsadmin /transfer downloadvimplug /download /priority normal https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim C:\Users\tulane\vimfiles\autoload\plug.vim
+   elseif has ('unix')
+      silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+   endif
+endif
+
+call plug#begin('~/vimfiles/vim-plug_plugin')
 
 " Linking vim help resources online
 Plug 'Carpetsmoker/helplink.vim'
@@ -1107,7 +1120,23 @@ Plug 'Carpetsmoker/helplink.vim'
 " Graphical undo tree
 Plug 'mbbill/undotree'
 
+" The best colorscheme
+Plug 'Tumbler/oceannight'
+
+" Get the most up-to-date version of netrw (This is only a mirror as Chip
+" doesn't use github unfortunately. Hopefully this will change one day)
+Plug 'eiginn/netrw'
+
 call plug#end()
+
+" Load our colorscheme if we can.
+try
+   color oceannight
+catch /^Vim\%((\a\+)\)\=:E185/
+   color desert
+   " Defaults to desert which comes with Vim and is decent.
+endtry
+
 "<
 
 let g:Tumbler_vimrc = 1
