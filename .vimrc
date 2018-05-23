@@ -538,7 +538,6 @@ augroup Tumbler
 
    autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
    " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
-   autocmd BufReadPost *.xeh set ft=hex
 augroup END
 endif
 "<
