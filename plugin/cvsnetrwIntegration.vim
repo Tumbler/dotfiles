@@ -1,7 +1,7 @@
 "@Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/08/2017 04:58 PM
-let s:Version = 2.40
+" Last Edited: 05/22/2018 05:05 PM
+let s:Version = 2.41
 
 " Note: This plugin is merely an extension to the "cvsmenu" plugin. It will
 "   not work without it! You can find it here:
@@ -207,12 +207,22 @@ function! UpdateCVSHilighting()
             " add it to the list.
             "call s:CVSCheckForUpdates(1)
          endif
-         hi uptodate    cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
-         hi modified    cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
-         hi modifiedDir cterm=NONE ctermbg=236 ctermfg=129 gui=NONE guibg=bg guifg=Purple
-         hi postDir     cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
-         hi unknown     cterm=NONE ctermbg=236 ctermfg=30 gui=NONE guibg=bg guifg=darkcyan
-         hi conflict    cterm=NONE ctermbg=196 ctermfg=231 gui=NONE guibg=red guifg=black
+         try
+            hi uptodate    cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
+            hi modified    cterm=NONE ctermbg=bg ctermfg=173 gui=NONE guibg=bg guifg=peru
+            hi modifiedDir cterm=NONE ctermbg=236 ctermfg=129 gui=NONE guibg=bg guifg=Purple
+            hi postDir     cterm=NONE ctermbg=bg ctermfg=120 gui=NONE guibg=bg guifg=palegreen
+            hi unknown     cterm=NONE ctermbg=236 ctermfg=30 gui=NONE guibg=bg guifg=darkcyan
+            hi conflict    cterm=NONE ctermbg=196 ctermfg=231 gui=NONE guibg=red guifg=black
+         catch /^Vim\%((\a\+)\)\=:E420/
+            " BG hasn't been set, we'll have to do without. (see :h E420)
+            hi uptodate    cterm=NONE            ctermfg=120 gui=NONE          guifg=palegreen
+            hi modified    cterm=NONE            ctermfg=173 gui=NONE          guifg=peru
+            hi modifiedDir cterm=NONE             ctermfg=129 gui=NONE          guifg=Purple
+            hi postDir     cterm=NONE            ctermfg=120 gui=NONE          guifg=palegreen
+            hi unknown     cterm=NONE             ctermfg=30 gui=NONE          guifg=darkcyan
+            hi conflict    cterm=NONE             ctermfg=231 gui=NONE guibg=red guifg=black
+         endtry
          if (getcwd() !~ 'C:\\$\|C:\/$')
             " Don't try to save a file to root
             if (dirModified || fileModified)
@@ -305,21 +315,17 @@ endfunction
 function! s:DiffWithCVS()
    if (! &diff && winnr('$') == 1)
       set visualbell
-      try
-         if (&filetype == 'netrw')
-            exe "normal \<CR>"
-            lclose
-            cclose
-            call CVSdiff()
-            exe "normal! \<C-W>L"
-            normal gg]c[c
-         else
-            call CVSdiff()
-            exe "normal! \<C-W>L"
-         endif
-      catch /^Vim\%((\a\+)\)\=:E803/
-         " ID not found error. It's wrong just ignore it.
-      endtry
+      if (&filetype == 'netrw')
+         exe "normal \<CR>"
+         lclose
+         cclose
+         call CVSdiff()
+         exe "normal! \<C-W>L"
+         normal gg]c[c
+      else
+         call CVSdiff()
+         exe "normal! \<C-W>L"
+      endif
       set scrolloff=9999
 
       if (winnr('$') != 1)
