@@ -1,9 +1,10 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 05/22/2018 04:08 PM
+" Last Edited: 05/30/2018 01:12 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
+" TODO: Figure out how the heck to take control formatoptions! It's driving me crazy!!!
 
 "> Settings
 if (line('$') == 1 && getline(1) == '' && has("gui_running"))
@@ -98,9 +99,14 @@ endif
 set omnifunc=syntaxcomplete#Complete
 " Attempt to intelligently fill the omnicomplete by filetype
 
-set formatoptions+=jr
+set formatoptions=jrql2
 " Remove extra comment headers when [J]oining
 " When in a comment, [r]eturn will automatically add a comment header
+" When formatting text, use the indent of the [2]nd line of a paragraph
+" See :h fo-table for more info
+" ftplugin kind of overrides this (which is ANNOYING BTW), still figuring out
+"    how I want to handle this (one option is an autocmd that sets fo everytime
+"    you open a new buffer but seems kind of heavy handed).
 
 ">> Plugin settings
 let g:netrw_sort_sequence='[\/]$,*,\.o$,\.obj$,\.info$,\.d$,\.hex$,\.map$,\.mcp$,\.mcw$,\.lib$,\.swp$,\.bak$,\.lst$,\.rlf$,\.sdb$,\.CVSfolderStatus,\~$'
@@ -151,6 +157,7 @@ inoreabbrev ture true
 " Command line abbreviations:
 cnoreabbrev <expr> h (getcmdtype() == ':' && getcmdline() =~ '^h$')? 'tab help' : 'h'
 " Help opens in new tab
+
 cnoreabbrev <expr> w (getcmdtype() == ':' && getcmdline() =~ '^w$')? 'call SaveBuffer(0)' : 'w'
 cnoreabbrev wq  call SaveBuffer(1)
 cnoreabbrev wy  call SaveBuffer(2)
@@ -169,7 +176,7 @@ cnoreabbrev D Diffsplit
 " I use diffsplit a lot, might as well make it easer to type
 
 cnoreabbrev qh tabdo if (!buflisted(bufnr('%')) && &modifiable == 0) <BAR> tabclose <BAR> endif
-" Closes all help tabs (Technically all unlsted non-modifiable, but this is usually going to just be help)
+" Closes all help tabs (Technically all unlisted non-modifiable, but this is usually going to just be help)
 
 if has("unix") && !has("gui_running")
    let c='a'
@@ -269,20 +276,23 @@ inoremap <C-Space> <C-n>
 
 " Change Focus Between Split Windows
 nnoremap <C-j>  <C-W>j
-tnoremap <C-j>  <C-W>j
 inoremap <expr> <C-j>  pumvisible() ? "<Down>" : "<Esc><C-W>j"
    " If AutoComplete box is open tab through the menu, otherwise shift focus down
 nnoremap <C-k>  <C-W>k
-tnoremap <C-k>  <C-W>k
 inoremap <expr> <C-k>  pumvisible() ? "<Up>" : "<Esc><C-W>k"
    " If AutoComplete box is open tab through the menu, otherwise shift focus up
 nnoremap <C-h>  <C-W>h
-tnoremap <C-h>  <C-W>h
    " Left
 nnoremap <C-l>  <C-W>l
 inoremap <C-l>  <Esc><C-W>l
-tnoremap <C-l>  <C-W>l
    " Right
+if version >= 810
+   tnoremap <C-j>  <C-W>j
+   tnoremap <C-k>  <C-W>k
+   tnoremap <C-h>  <C-W>h
+   tnoremap <C-l>  <C-W>l
+endif
+" Same as the above but for termal splits (Only available starting in 8.1)
 nnoremap <C-d>   :res +10<CR>
 inoremap <C-d>   <C-o>:res +10<CR>
 nnoremap <C-s>   :vertical res +10<CR>
@@ -538,6 +548,7 @@ augroup Tumbler
 
    autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
    " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
+   autocmd BufReadPost *.xeh set ft=hex
 augroup END
 endif
 "<
