@@ -2,7 +2,7 @@
 " Directory Differ Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 05/23/2018 10:38 AM
-let s:Version = 2.06
+let s:Version = 2.07
 
 " Anti-inclusion guard and version
 if (exists("g:loaded_dirDiffPlugin") && (g:loaded_dirDiffPlugin >= s:Version))
