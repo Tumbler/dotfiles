@@ -1,10 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 05/23/2018 11:01 AM
-let s:Version = 2.15
-
-"TODO Add operation for the edit command
+" Last Edited: 05/30/2018 11:39 AM
+let s:Version = 2.16
 
 if (exists("g:loaded_projectManager") && (g:loaded_projectManager >= s:Version))
    finish
@@ -51,6 +49,11 @@ command! -nargs=1 -complete=tag Tag :call <SID>Tag('<args>')
 " Just does a :tag, but makes sure to setlocal tags= first.
 cnoreabbrev <expr> tag (getcmdtype() == ':' && getcmdline() =~ '^tag$')? 'Tag' : 'tag'
 " Makes regular tag calls use our version of tag.
+command! -nargs=1 -complete=custom,<SID>ProjectFileCompletion Edit :call <SID>Edit('<args>')
+" Just does an :edit, but makes sure to check the whole project
+cnoreabbrev <expr> e (getcmdtype() == ':' && getcmdline() =~ '^e$')? 'Edit' : 'e'
+cnoreabbrev <expr> edit (getcmdtype() == ':' && getcmdline() =~ '^edit$')? 'Edit' : 'edit'
+" Makes regular edit calls use our version of Edit.
 
 " Allows you to set your own key combo if you want to
 if (exists('g:projectManager_DirSearchKeyCombo'))
@@ -548,11 +551,15 @@ function! s:ExecuteCommand(command, options)
             if (state)
                let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
                echo "\n"
-               call s:AddDirectory(project, dir, "R")
+               if (dir != "q")
+                  call s:AddDirectory(project, dir, "R")
+               endif
             else
                let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
                echo "\n"
-               call s:AddExclusion(project, dir, "R")
+               if (dir != "q")
+                  call s:AddExclusion(project, dir, "R")
+               endif
             endif
          endwhile
          call s:PrintProject(project, 0)
@@ -1037,7 +1044,7 @@ function! s:AddDirectory(project, dir, relative)
    " Don't check if directory exists if the project is relative
    if (a:relative == "R" || isdirectory(a:dir))
       if (a:relative == "R")
-         let expandedDir = a:dir
+         let expandedDir = substitute(a:dir, "/*$", "/", "")
       else
          let expandedDir = s:ExpandDir(a:dir, 0)
       endif
@@ -1175,10 +1182,10 @@ function! s:SaveProject()
    for project in sort(keys(g:ProjectManager))
       call add(mySaveList, project." ".g:ProjectManager[project]["type"])
       for dir in copy(g:ProjectManager[project]["dirs"])
-         call add(l:mySaveList, "\tD " . dir)
+         call add(l:mySaveList, "\tD " . substitute(dir, '/*$', '/', ''))
       endfor
       for dir in copy(g:ProjectManager[project]["optional"])
-         call add(l:mySaveList, "\tO " . dir)
+         call add(l:mySaveList, "\tO " . substitute(dir, '/*$', '/', ''))
       endfor
       for exclude in copy(g:ProjectManager[project]["excludes"])
          call add(l:mySaveList, "\tE " . exclude)
@@ -1248,6 +1255,7 @@ function! s:ExpandDir(dir, trailingSlashFlag)
       let newDir = fnamemodify(newDir, ":p:h")
    endif
    let newDir = substitute(newDir, "\\", "/", "g")
+   let newDir = substitute(newDir, "/*$", "/", "")
 
    return newDir
 endfunction
@@ -1310,6 +1318,29 @@ function! s:ProjectCompletion(arg, line, pos)
    return returnString
 endfunction
 
+" ProjecFiletCompletion <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: This is a custom completion function that will complete file names in
+"          a project.
+"     input/returns - see :h command-completion-custom
+function! s:ProjectFileCompletion(arg, line, pos)
+   let origdir = getcwd()
+   " Save for later
+
+   let ReturnedProjectStruct = ProjectManager_ReturnProject(origdir)
+   let project = ReturnedProjectStruct[0]
+   let projectRoot = ReturnedProjectStruct[1]
+   let dirs = ProjectManager_ReturnProjectDirectories(project.name)
+
+   exe "cd " . projectRoot
+   let returnList = globpath(join(dirs, ','), '*', 0, 1)
+   exe "cd " . origdir
+
+   call filter(returnList, 'filereadable(v:val)')
+   call map(returnList, "substitute(v:val, '.*/', '', '')")
+
+   return join(returnList, "\n")
+endfunction
+
 " FormatVimGrepFiles ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Gets the current projects directories and formats them properly for
 "          a vimgrep.
@@ -1331,7 +1362,6 @@ function! s:FormatVimGrepFiles(dirList, typeList)
    else
       let myReturnString = './*'
    endif
-   echom myReturnString
    return myReturnString
 endfunction
 
@@ -1461,7 +1491,7 @@ endfunction
 
 " TraverseCtag ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Goes to tag under cursor but tries to intelligently open it in a new
-"          split or tab based on certain stimuli. Also tries to generate a tag
+"          split or tab based on certain criteria. Also tries to generate a tag
 "          file if there isn't one.
 "     input   - (optonal) If present, it will not try to generate a tag file and
 "               try again.
@@ -1563,6 +1593,40 @@ function! s:Tag(tag, ...)
    endtry
 endfunction
 
+" Edit ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Executes an :edit but also searches other direcectories in the
+"          project for the file
+"     input   - file: [string] file to edit
+"     returns - void
+function! s:Edit(file)
+   if filereadable(a:file)
+      exe 'edit '.a:file
+   else
+      let origdir = getcwd()
+      " Save for later
+
+      let ReturnedProjectStruct = ProjectManager_ReturnProject(origdir)
+      let project = ReturnedProjectStruct[0]
+      let projectRoot = ReturnedProjectStruct[1]
+      let dirs = ProjectManager_ReturnProjectDirectories(project.name)
+
+      exe "cd " . projectRoot
+      " Change directory so that our relative projects can have the correct
+      "   starting point
+
+      for dir in dirs
+         if filereadable(dir.a:file)
+            exe 'edit '.dir.a:file
+            return
+         endif
+      endfor
+
+      call EchoError('File not found! Creating new file.')
+      exe "cd " . origdir
+      exe 'edit '. a:file
+   endif
+endfunction
+
 " GenerateCTags <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Generates a tag file for your whole project. This function assumes
 "          that you have Ctags installed.
@@ -1634,7 +1698,7 @@ endfunction
 
 " The MIT License (MIT)
 "
-" Copyright © 2017 Warren Terrall
+" Copyright © 2018 Warren Terrall
 "
 " Permission is hereby granted, free of charge, to any person obtaining a copy
 " of this software and associated documentation files (the "Software"), to
