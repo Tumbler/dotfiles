@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 05/30/2018 01:12 PM
+" Last Edited: 05/22/2018 04:08 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -107,6 +107,7 @@ set formatoptions=jrql2
 " ftplugin kind of overrides this (which is ANNOYING BTW), still figuring out
 "    how I want to handle this (one option is an autocmd that sets fo everytime
 "    you open a new buffer but seems kind of heavy handed).
+" TODO Trying a fix out and I don't care if it's heavy handed.
 
 ">> Plugin settings
 let g:netrw_sort_sequence='[\/]$,*,\.o$,\.obj$,\.info$,\.d$,\.hex$,\.map$,\.mcp$,\.mcw$,\.lib$,\.swp$,\.bak$,\.lst$,\.rlf$,\.sdb$,\.CVSfolderStatus,\~$'
@@ -419,6 +420,8 @@ inoremap <expr> <A-q> (&diff)? '<C-o>:diffoff!<CR><C-o>w:q<CR>' : '<C-o>:cclose
 " Closes diff or quickfix window
 nnoremap <silent><A-s> :let @z=@" <bar> let @"=@s <bar> let @s=@z <CR>
 " Saves the unamed register to register s for later use. Press again to restore.
+vnoremap <silent><A-S> cs<Esc>b
+" Pastes contents of the "saved" register
 
 " File stuff
 map  <A-g> <C-^>
@@ -548,7 +551,9 @@ augroup Tumbler
 
    autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
    " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
-   autocmd BufReadPost *.xeh set ft=hex
+
+   autocmd BufNewFile,BufRead,FileType * setlocal formatoptions=jrql2
+   " Screw ftplugin; this is how I want my formatting!
 augroup END
 endif
 "<
@@ -1124,14 +1129,17 @@ endif
 
 call plug#begin('~/vimfiles/vim-plug_plugin')
 
+" The best colorscheme
+Plug 'Tumbler/oceannight'
+
+" Probably won't keep this here, but I will until I close the issue.
+"Plug 'Tumbler/highlightMarks'
+
 " Linking vim help resources online
 Plug 'Carpetsmoker/helplink.vim'
 
 " Graphical undo tree
 Plug 'mbbill/undotree'
-
-" The best colorscheme
-Plug 'Tumbler/oceannight'
 
 " Get the most up-to-date version of netrw (This is only a mirror as Chip
 " doesn't use github unfortunately. Hopefully this will change one day)
@@ -1146,6 +1154,10 @@ catch /^Vim\%((\a\+)\)\=:E185/
    color desert
    " Defaults to desert which comes with Vim and is decent.
 endtry
+
+" Make helplink copy to the unnamed (") register too so our FocusLost autocmd
+"    doesn't screw it all up.
+let g:helplink_copy_to_registers = ['+', '*', '"']
 
 "<
 
@@ -1209,6 +1221,9 @@ let g:Tumbler_vimrc = 1
 " Looking for an environment variable? Try tab-completing ":echo $"
 
 " :retab is super useful!
+
+" If you want to render your current file as HTML (with current color intact)
+" try :TOhtml.
 
 " See :h highlight-groups for all highlighting groups
 " See :h autocmd-events-abc for a list of all events
