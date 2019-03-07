@@ -4,6 +4,8 @@
 " Last Edited: 05/30/2018 11:39 AM
 let s:Version = 2.16
 
+" TODO: Remove Microchip from manager.
+
 if (exists("g:loaded_projectManager") && (g:loaded_projectManager >= s:Version))
    finish
 endif
@@ -1383,7 +1385,7 @@ endfunction
 "   brief: Performs an lvimgrep on the current project
 "     input   - searchWord: [string] What to search for
 "     returns - void
-function! s:ProjectVimGrep(searchWord, typeList)
+function! s:ProjectVimGrep(searchWord, typeList, global)
    let g:ale_enabled = 0
    let g:projectManager_DirSearchActive = 1
    " If ale is installed we need to disable it, because it tries to lint
@@ -1410,7 +1412,7 @@ function! s:ProjectVimGrep(searchWord, typeList)
    let excludeString = substitute(excludeString, ',$', '', '')
    exe 'set wildignore+='. excludeString
 
-   exe "lvimgrep /" . a:searchWord."/j " . searchDirs
+   exe "lvimgrep /" . a:searchWord."/j". (a:global? "g ":" ") . searchDirs
    lw
    exe "normal! \<C-W>j\<CR>"
    echom a:searchWord
@@ -1455,6 +1457,7 @@ function! s:DirSearch(input)
          let search = ""
          let extensions = ""
          let recurse = 0
+         let global = 0
          if     (a:input =~# '\(\\\)\@<!\\r')
             " Found "\r" in pattern, recurse this directory
             let recurse = 1
@@ -1472,10 +1475,15 @@ function! s:DirSearch(input)
             let extensions = split(matchstr(search, '\(\\\)\@<!\\e\zs.*'), ',')
             let search = substitute(search, '\(\\\)\@<!\\e.*', "", "g")
          endif
+         if (search =~# '\(\\\)\@<!\\g')
+            " Found "\g" in pattern, list all matches.
+            let global = 1
+            let search = substitute(search, '\(\\\)\@<!\\g.*', "", "g")
+         endif
          if (recurse)
-            exec "lvimgrep /" . search . "/j ". s:FormatVimGrepFiles(["./**"], extensions)
+            exec "lvimgrep /" . search . "/j". (global? "g ":" ") . s:FormatVimGrepFiles(["./**"], extensions)
          else
-            call s:ProjectVimGrep(search, extensions)
+            call s:ProjectVimGrep(search, extensions, global)
          endif
          lw
          let @/ = search
