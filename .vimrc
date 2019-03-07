@@ -1,10 +1,9 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 05/22/2018 04:08 PM
+" Last Edited: 03/07/2019 02:19 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
-" TODO: Figure out how the heck to take control formatoptions! It's driving me crazy!!!
 
 "> Settings
 if (line('$') == 1 && getline(1) == '' && has("gui_running"))
@@ -1131,9 +1130,6 @@ call plug#begin('~/vimfiles/vim-plug_plugin')
 
 " The best colorscheme
 Plug 'Tumbler/oceannight'
-
-" Probably won't keep this here, but I will until I close the issue.
-"Plug 'Tumbler/highlightMarks'
 
 " Linking vim help resources online
 Plug 'Carpetsmoker/helplink.vim'
