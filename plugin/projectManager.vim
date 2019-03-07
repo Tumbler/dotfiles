@@ -45,7 +45,7 @@ command! -nargs=1 -complete=custom,<SID>ProjectCompletion ProjSelect call <SID>E
 " Selects a project so you don't have to go into the manager
 command! -nargs=1 -complete=tag DirectorySearch :call <SID>DirSearch('<args>')
 " Brings up the Directory Search Prompt (See DirSearch)
-command! -nargs=1 -complete=tag ProjectGrep :call <SID>ProjectVimGrep('<args>', [])
+command! -nargs=1 -complete=tag ProjectGrep :call <SID>ProjectVimGrep('<args>', [], 0)
 " Similar to DirectorySearch but without as much pre-processing. (Use this in mappings)
 command! -nargs=1 -complete=tag Tag :call <SID>Tag('<args>')
 " Just does a :tag, but makes sure to setlocal tags= first.
