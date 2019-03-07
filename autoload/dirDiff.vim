@@ -26,12 +26,6 @@ let g:loaded_dirDiffAuto = s:Version
 "   |--root[bool]                " Whether or not this node is the root of the
 "                                "   comparison (has no parent)
 
-if has('autocmd')
-augroup DIRDIFF
-   "autocmd BufEnter * call s:NextItem(winnr(), 0)
-augroup END
-endif
-
 let s:DirMode = 0
 let s:uniqueID = 0
 let s:sortDirs = [[], []]
@@ -52,7 +46,7 @@ function! dirDiff#DirDiff(...)
       let firstDirTemp = s:ExpandDir(getcwd(), 1)
       let secondDirTemp = input("First Directory: " . firstDirTemp . "\n" .
                                 \ "What is the other directory you want to compare? ", 'C:/', "dir")
-      " This is here so we can type wile still in the netrw tab.
+      " This is here so we can type while still in the netrw tab.
       if (secondDirTemp != '')
          let secondDirTemp = s:ExpandDir(secondDirTemp, 1)
       endif
@@ -213,7 +207,7 @@ function! s:InitializeDir(path, directory, ...)
 endfunction
 
 " PopulateSortOrder <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: Takes a dictionary and fills in all necessary varialbes in order to
+"   brief: Takes a dictionary and fills in all necessary variables in order to
 "         diff the current dir.
 "    input   - sort: [{dictionary}] the dictionary to fill
 "              dir1: [{directory}] A dictionary that contains all of the
