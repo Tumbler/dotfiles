@@ -4,6 +4,8 @@
 " Last Edited: 12/08/2017 05:02 PM
 let s:Version = 1.06
 
+" TODO Leading zeros doesn't work if you have more than 1 nibbles worth of zeros
+
 " Anti-inclusion guard and version
 if (exists("g:loaded_baseConverter") && (g:loaded_baseConverter >= s:Version))
    finish
