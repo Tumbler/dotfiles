@@ -1,7 +1,7 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 05/23/2018 10:42 AM
+" Last Edited: 03/12/2019 10:31 AM
 let s:Version = 1.62
 
 " Anti-inclusion guard and version
@@ -14,7 +14,7 @@ let g:vimpathmemFile = $HOME.'/vimfiles/.vimpathmem'
 
 let s:User_autoread = &autoread
 
-command! -nargs=1 -complete=dir Goto :call <SID>ManualExplore('<args>')
+command! -nargs=1 -complete=file Goto :call <SID>ManualExplore('<args>')
 " Allows to you jump to any directory without having to get there through netrw
 
 nnoremap - :call <SID>SmartExplore('file')<CR>
@@ -150,14 +150,16 @@ function! s:SmartInspect()
 endfunction
 
 "  ManualExplore ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: Jumps to a directory directly
-"    input - dir [String] The directory to jump to
-function! s:ManualExplore(dir)
-   let myDir = <SID>ExpandDir(a:dir, 1)
-   if isdirectory(myDir)
-      call netrw#LocalBrowseCheck(myDir)
+"   brief: Jumps to a directory or file directly
+"    input - path [String] The directory or file to jump to
+function! s:ManualExplore(path)
+   let myPath = <SID>ExpandDir(a:path, 1)
+   if isdirectory(myPath)
+      call netrw#LocalBrowseCheck(myPath)
+   elseif filereadable(myPath)
+      exec "edit ". myPath
    else
-      call <SID>EchoError("Not a directory")
+      call <SID>EchoError("Not a directory or file")
    endif
 endfunction
 
