@@ -453,7 +453,7 @@ nnoremap <S-F6>  :call Javadoc()<Esc>
 nnoremap <F7>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 inoremap <F7>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 " Reloads syntax file and vimrc
-nnoremap <F9>    :%MkVimball! TumblerVimball<CR>
+nnoremap <S-F9>    :%MkVimball! TumblerVimball<CR>
 nnoremap <S-F12> :call RemoveTrailingWhitespace() <BAR> retab<CR>
 inoremap <S-F12> <C-o>:call RemoveTrailingWhitespace() <BAR> retab<CR>
 " Removes all trailing whitespace in file
@@ -1126,22 +1126,25 @@ if !filereadable($HOME.'/vimfiles/autoload/plug.vim')
    endif
 endif
 
-call plug#begin('~/vimfiles/vim-plug_plugin')
+" Make sure the above worked
+if filereadable($HOME.'/vimfiles/autoload/plug.vim')
+   call plug#begin('~/vimfiles/vim-plug_plugin')
 
-" The best colorscheme
-Plug 'Tumbler/oceannight'
+   " The best colorscheme
+   Plug 'Tumbler/oceannight'
 
-" Linking vim help resources online
-Plug 'Carpetsmoker/helplink.vim'
+   " Linking vim help resources online
+   Plug 'Carpetsmoker/helplink.vim'
 
-" Graphical undo tree
-Plug 'mbbill/undotree'
+   " Graphical undo tree
+   Plug 'mbbill/undotree'
 
-" Get the most up-to-date version of netrw (This is only a mirror as Chip
-" doesn't use github unfortunately. Hopefully this will change one day)
-Plug 'eiginn/netrw'
+   " Get the most up-to-date version of netrw (This is only a mirror as Chip
+   " doesn't use github unfortunately. Hopefully this will change one day)
+   Plug 'eiginn/netrw'
 
-call plug#end()
+   call plug#end()
+endif
 
 " Load our colorscheme if we can.
 try
