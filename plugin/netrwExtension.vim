@@ -1,8 +1,8 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/12/2019 10:31 AM
-let s:Version = 1.62
+" Last Edited: 03/29/2019 02:57 PM
+let s:Version = 1.64
 
 " Anti-inclusion guard and version
 if (exists("g:loaded_netwExtension") && (g:loaded_netwExtension >= s:Version))
@@ -179,6 +179,7 @@ function! s:AddToPathList(file)
    let paths = readfile(g:vimpathmemFile)
    let mycwd = b:netrw_curdir
    let idx = 0
+   " If the path is already in the list then remove the old copy.
    for line in paths
       if (mycwd == substitute(line, '\(.*\)\@<= | .*', '', ''))
          call remove(paths, idx)
@@ -233,15 +234,6 @@ function! s:Remap_netrw()
    endif
    exe "nnoremap <buffer> /    :call <SID>DirFind()<CR>"
    exe "nmap     <buffer> n    /<UP><CR>"
-   "call timer_start(1, '<SID>Remap_netrwAdditionalOptions')
-endfunction
-
-"  Remap_netrwAdditionalOptions <><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: Netrw sets a lot of its own options so if we do them immediately
-"          they just get reset. Putting them on a timer allows us to set them
-"          after netrw and claim the last word.
-function! s:Remap_netrwAdditionalOptions(timer)
-   "set buftype=nofile
 endfunction
 
 "  DirFind ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -253,7 +245,11 @@ function! s:DirFind()
    if (&ft == 'netrw')
       " Only works in netrw
       let usr = input("/", "", "file")
-      call search(usr)
+      if (search('^'. usr .'$') == 0)
+         " Match only exactly what the usr searched first. If that fails try a
+         " more lenient search.
+         call search(usr)
+      endif
    endif
 endfunction
 
