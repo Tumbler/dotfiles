@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/07/2019 02:19 PM
+" Last Edited: 07/11/2019 03:03 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -310,7 +310,7 @@ nnoremap <A-t>   @w
 inoremap <A-t>   <Esc>@w
 " Because sometimes you need two macros
 nnoremap <expr> <A-l>  exists('g:cvsnetrwIntegration')? ":tabnext\<CR>:call UpdateCVSHilighting()\<CR>" : ":tabnext\<CR>"
-inoremap <expr> <A-l>  exists('g:cvsnetrwIntegration')? "\<Esc>:tabnext\<CR>:call UpdateCVSHilighting()\<CR>" : "\<Esc>:tabnext\<CR>"
+inoremap <A-l> <Right>
 " Switch to next tab
 nnoremap <S-A-l> :tabmove +1<CR>
 inoremap <S-A-l> <Esc>:tabmove +1<CR>
@@ -318,7 +318,7 @@ inoremap <S-A-l> <Esc>:tabmove +1<CR>
 cnoremap <A-l>   <Right>
 " Moves right in the command line
 nnoremap <expr> <A-h>  exists('g:cvsnetrwIntegration')? ":tabprevious\<CR>:call UpdateCVSHilighting()\<CR>" : ":tabprevious\<CR>"
-inoremap <expr> <A-h>  exists('g:cvsnetrwIntegration')? "\<Esc>:tabprevious\<CR>:call UpdateCVSHilighting()\<CR>" : "\<Esc>:tabprevious\<CR>"
+inoremap <A-h> <Left>
 " Switch to previous tab
 nnoremap <S-A-h> :tabmove -1<CR>
 inoremap <S-A-h> <Esc>:tabmove -1<CR>
@@ -496,9 +496,9 @@ augroup Tumbler
    autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
    " When editing a file, always jump to the last cursor position.
 
-   autocmd BufReadPost * if (&filetype != 'qf' && !exists('b:ColorColumnID')) | let b:ColorColumnID = matchadd('ColorColumn', '\%81v.') | endif
+   autocmd BufReadPost * if (&filetype != 'qf' && !exists('w:ColorColumnID')) | let w:ColorColumnID = matchadd('ColorColumn', '\%81v.') | endif
    " Highlight the 81st character on the line if it's not the quickfix.
-   autocmd FilterWritePost * if (&diff && exists('b:ColorColumnID')) | call matchdelete(b:ColorColumnID) | unlet b:ColorColumnID | endif
+   autocmd FilterWritePost * if (&diff && exists('w:ColorColumnID')) | call matchdelete(w:ColorColumnID) | unlet w:ColorColumnID | endif
    " When diffing take out the coloring because it looks like diff highlighting.
 
    autocmd BufReadPre  * nmap<buffer>  <A-c>   I//<Esc>$<A-j>
@@ -1089,16 +1089,23 @@ function! SetLineEndings()
 endfunction
 
 function! s:Quit()
-   let savedWindow = winnr()
-   if (savedWindow + 1 <= winnr('$'))
-      exec savedWindow+1 . " wincmd w"
-      if (exists('w:quickfix_title'))
-         quit
-      else
-         exec savedWindow . " wincmd w"
+   try
+      let savedWindow = winnr()
+      if (savedWindow + 1 <= winnr('$'))
+         exec savedWindow+1 . " wincmd w"
+         if (exists('w:quickfix_title'))
+            quit
+         else
+            exec savedWindow . " wincmd w"
+         endif
       endif
-   endif
-   quit
+      quit
+   catch /^Vim\%((\a\+)\)\=:162/
+      let bufName = matchstr(v:exception, '"\zs.*\ze"')
+      if (bufName =~ '/$' || bufName =~ '^$')
+         echo "I think we're good"
+      endif
+   endtry
 endfunction
 
 "<
