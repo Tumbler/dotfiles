@@ -1089,23 +1089,16 @@ function! SetLineEndings()
 endfunction
 
 function! s:Quit()
-   try
-      let savedWindow = winnr()
-      if (savedWindow + 1 <= winnr('$'))
-         exec savedWindow+1 . " wincmd w"
-         if (exists('w:quickfix_title'))
-            quit
-         else
-            exec savedWindow . " wincmd w"
-         endif
+   let savedWindow = winnr()
+   if (savedWindow + 1 <= winnr('$'))
+      exec savedWindow+1 . " wincmd w"
+      if (exists('w:quickfix_title'))
+         quit
+      else
+         exec savedWindow . " wincmd w"
       endif
-      quit
-   catch /^Vim\%((\a\+)\)\=:162/
-      let bufName = matchstr(v:exception, '"\zs.*\ze"')
-      if (bufName =~ '/$' || bufName =~ '^$')
-         echo "I think we're good"
-      endif
-   endtry
+   endif
+   quit
 endfunction
 
 "<
