@@ -16,10 +16,10 @@ if (exists("g:loaded_cvsnetrwIntegration") && (g:loaded_cvsnetrwIntegration >= s
 endif
 let g:loaded_cvsnetrwIntegration = s:Version
 
+" Makes sure that our location for cvs tracking files exists
 if !isdirectory($HOME.'/vimfiles/cvs')
    call mkdir($HOME.'/vimfiles/cvs')
 endif
-" Makes sure that our location for cvs tracking files exists
 
 autocmd BufWritePost * call <SID>CVSCheckForUpdates(1)
 autocmd BufCreate * if (&filetype == 'netrw') | call UpdateCVSHilighting() | endif
