@@ -1120,7 +1120,12 @@ endif
 " Using vim-plug as my plugin manager (https://github.com/junegunn/vim-plug)
 if !filereadable($HOME.'/vimfiles/autoload/plug.vim')
    if has('win32')
-      silent!! bitsadmin /transfer downloadvimplug /download /priority normal https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim C:\Users\tulane\vimfiles\autoload\plug.vim
+      " This obviously only works if powerShell is installed, but it's pretty
+      " much the only native way Windows has of doing this.
+      let prevShell = &shell
+      set shell=powershell
+      exec "silent! !(New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim', '".$HOME."/vimfiles/autoload/plug.vim')"
+      exec "set shell=".prevShell
    elseif has ('unix')
       silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
    endif
