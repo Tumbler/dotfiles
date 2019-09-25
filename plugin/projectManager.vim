@@ -1,7 +1,7 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 05/30/2018 11:39 AM
+" Last Edited: 09/25/2019 09:07 AM
 let s:Version = 2.16
 
 " TODO: Remove Microchip from manager.
@@ -589,11 +589,15 @@ function! s:ExecuteCommand(command, options)
             if (state)
                let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
                echo "\n"
-               call s:AddDirectory(project, dir, "R")
+               if (dir != "q")
+                  call s:AddDirectory(project, dir, "R")
+               endif
             else
                let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
                echo "\n"
-               call s:AddExclusion(project, dir, "R")
+               if (dir != "q")
+                  call s:AddExclusion(project, dir, "R")
+               endif
             endif
          endwhile
          call s:PrintProject(project, 0)
@@ -631,11 +635,15 @@ function! s:ExecuteCommand(command, options)
                if (state)
                   let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
                   echo "\n"
-                  call s:AddDirectory(project, dir, g:ProjectManager[project].type)
+                  if (dir != "q")
+                     call s:AddDirectory(project, dir, g:ProjectManager[project].type)
+                  endif
                else
                   let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
                   echo "\n"
-                  call s:AddExclusion(project, dir, g:ProjectManager[project].type)
+                  if (dir != "q")
+                     call s:AddExclusion(project, dir, g:ProjectManager[project].type)
+                  endif
                endif
             endwhile
          else
@@ -657,11 +665,15 @@ function! s:ExecuteCommand(command, options)
                if (state)
                   let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
                   echo "\n"
-                  call s:AddDirectory(project, dir, g:ProjectManager[project].type)
+                  if (dir != "q")
+                     call s:AddDirectory(project, dir, g:ProjectManager[project].type)
+                  endif
                else
                   let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
                   echo "\n"
-                  call s:AddExclusion(project, dir, g:ProjectManager[project].type)
+                  if (dir != "q")
+                     call s:AddExclusion(project, dir, g:ProjectManager[project].type)
+                  endif
                endif
             endwhile
          else
@@ -754,7 +766,11 @@ function! s:ExecuteCommand(command, options)
          if has_key(g:ProjectManager, project)
             let s:activeProject = project
             for dir in a:options[1:]
-               let safeDir = s:ExpandDir(dir, 0)
+               if (g:ProjectManager[project].type == "N")
+                  let safeDir = s:ExpandDir(dir, 0)
+               else
+                  let safeDir = dir
+               endif
                if index(g:ProjectManager[project]["dirs"], safeDir)
                   call filter(g:ProjectManager[project]["dirs"], 'v:val !~ "' . safeDir . '"')
                else
@@ -913,7 +929,9 @@ function! s:ExecuteCommand(command, options)
             while (file != "q")
                let file = input("\nWhat file do you want to exclude? (q to quit)\n", "", "file")
                echo "\n"
-               call s:AddExclusion(project, file, g:ProjectManager[project].type)
+               if (file != "q")
+                  call s:AddExclusion(project, file, g:ProjectManager[project].type)
+               endif
             endwhile
          else
             call s:EchoError(project . " project does not exist!\n\n")
@@ -1039,7 +1057,7 @@ endfunction
 " AddDirectory ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Adds dir to project. Properly handles "\"'s, pre-existence, and
 "          relative paths
-"     input   - project: [Dictionary] The dictionary to add the dir to
+"     input   - project: [string] The key to the dictionary to add the dir to
 "               dir: [string] The dir to add to the project
 "     returns - [bool] True if add succeeded
 function! s:AddDirectory(project, dir, relative)
@@ -1047,6 +1065,11 @@ function! s:AddDirectory(project, dir, relative)
    if (a:relative == "R" || isdirectory(a:dir))
       if (a:relative == "R")
          let expandedDir = substitute(a:dir, "/*$", "/", "")
+         " Special case for relative projects. Algorithm for ReturnAbsoluteRoot
+         " requries that the main dir and the secondary dirs have a common root.
+         " So if they're nested in the main dir, point them to the main dir's
+         " parent.
+         let expandedDir = substitute(expandedDir, "^\./", "\.\./". a:project, "")
       else
          let expandedDir = s:ExpandDir(a:dir, 0)
       endif
@@ -1386,7 +1409,11 @@ endfunction
 "     input   - searchWord: [string] What to search for
 "     returns - void
 function! s:ProjectVimGrep(searchWord, typeList, global)
-   let g:ale_enabled = 0
+   let turnAleBackOn = 0
+   if (g:ale_enabled)
+      let turnAleBackOn = 1
+      let g:ale_enabled = 0
+   endif
    let g:projectManager_DirSearchActive = 1
    " If ale is installed we need to disable it, because it tries to lint
    " everything we search. It slows things down a TON and sometimes crashes.
@@ -1425,8 +1452,10 @@ function! s:ProjectVimGrep(searchWord, typeList, global)
 
    exe "cd " . origdir
    " Back to where we started
-   let g:ale_enabled = 1
-   " Turn ale back on
+   if (turnAleBackOn)
+      let g:ale_enabled = 1
+      " Turn ale back on
+   endif
    let g:projectManager_DirSearchActive = 0
 
    set hlsearch
