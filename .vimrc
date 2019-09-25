@@ -194,6 +194,7 @@ command! -nargs=1 -complete=file Diffsplit diffsplit <args> | wincmd p
 " Diff a file and switches focus back on the original file
 command! Whitespace :call ReplaceBadWhitespaceInDir()
 " Replaces tabs and trailing whitespace in all files in a directory
+command! -nargs=1 Retab :call s:Retab(<args>)
 
 " Colorscheme moved to plugins so we can use a plugin manager.
 
@@ -551,11 +552,16 @@ augroup Tumbler
    autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
    " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
 
-   autocmd BufNewFile,BufRead,FileType * setlocal formatoptions=jrql2
+   autocmd BufNewFile,BufReadPost,FileType * call timer_start(10, 'ScrewFtPlugin')
    " Screw ftplugin; this is how I want my formatting!
 augroup END
 endif
 "<
+
+function! ScrewFtPlugin(timer)
+   noa setlocal formatoptions=jrql2
+endfunction
+
 
 "> Initializations
 " Init all global variables here:
@@ -1100,6 +1106,27 @@ function! s:Quit()
    endif
    quit
 endfunction
+
+" Retab <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Does a retab but first sets tab settings so they end up correct.
+"     input   - tablength: [int] Number of tabs spaces that the file was created
+"                                with
+"     returns - void
+function! s:Retab(tablength)
+   let myShiftWidth = &shiftwidth
+   let myTabStop = &tabstop
+   let mySoftTabStop = &softtabstop
+
+   exec "set shiftwidth=". a:tablength
+   exec "set tabstop=". a:tablength
+   exec "set softtabstop=". a:tablength
+
+   retab
+
+   exec "set shiftwidth=". myShiftWidth
+   exec "set tabstop=". myTabStop
+   exec "set softtabstop=". mySoftTabStop
+endfunction!
 
 "<
 
