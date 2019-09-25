@@ -2,7 +2,7 @@
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 09/25/2019 09:07 AM
-let s:Version = 2.16
+let s:Version = 2.17
 
 " TODO: Remove Microchip from manager.
 
