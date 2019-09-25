@@ -2,7 +2,7 @@
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 09/25/2019 09:07 AM
-let s:Version = 2.17
+let s:Version = 2.18
 
 " TODO: Remove Microchip from manager.
 
@@ -1069,7 +1069,7 @@ function! s:AddDirectory(project, dir, relative)
          " requries that the main dir and the secondary dirs have a common root.
          " So if they're nested in the main dir, point them to the main dir's
          " parent.
-         let expandedDir = substitute(expandedDir, "^\./", "\.\./". a:project, "")
+         let expandedDir = substitute(expandedDir, "^\\.\\/\\(.\\+\\)\\@=", "\.\.\/". a:project, "")
       else
          let expandedDir = s:ExpandDir(a:dir, 0)
       endif
