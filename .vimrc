@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 07/11/2019 03:03 PM
+" Last Edited: 10/30/2020 10:59 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -95,6 +95,11 @@ endif
 "   then paste. Now it only wipes out the clipboard when you leave vim.
 "   However, this only works in Gvim.
 
+if v:version >= 802
+   set modelineexpr
+   " Allows advanced modelines so we can do fancy folding
+endif
+
 set omnifunc=syntaxcomplete#Complete
 " Attempt to intelligently fill the omnicomplete by filetype
 
@@ -103,10 +108,8 @@ set formatoptions=jrql2
 " When in a comment, [r]eturn will automatically add a comment header
 " When formatting text, use the indent of the [2]nd line of a paragraph
 " See :h fo-table for more info
-" ftplugin kind of overrides this (which is ANNOYING BTW), still figuring out
-"    how I want to handle this (one option is an autocmd that sets fo everytime
-"    you open a new buffer but seems kind of heavy handed).
-" TODO Trying a fix out and I don't care if it's heavy handed.
+" ftplugin Overrides this (which is ANNOYING BTW). I have an autocmd to override
+" ftplugin because this is how I want it dang it!
 
 ">> Plugin settings
 let g:netrw_sort_sequence='[\/]$,*,\.o$,\.obj$,\.info$,\.d$,\.hex$,\.map$,\.mcp$,\.mcw$,\.lib$,\.swp$,\.bak$,\.lst$,\.rlf$,\.sdb$,\.CVSfolderStatus,\~$'
@@ -177,6 +180,9 @@ cnoreabbrev D Diffsplit
 
 cnoreabbrev qh tabdo if (!buflisted(bufnr('%')) && &modifiable == 0) <BAR> tabclose <BAR> endif
 " Closes all help tabs (Technically all unlisted non-modifiable, but this is usually going to just be help)
+
+cnoreabbrev <expr> cw (getcmdtype() == ':' && getcmdline() =~ '^cw$')? 'copen' : 'cw'
+" Opens the quickfix even if there are no errors. I have other easy ways to close it.
 
 if has("unix") && !has("gui_running")
    let c='a'
@@ -264,6 +270,10 @@ cnoremap <C-p> <C-r>"
 inoremap <C-p> <C-r>"
 " "Pastes" the current unnamed register
 
+vnoremap <C-p> "0p
+" Uses the next to last thing that we yanked to make it easier to past the same
+" thing several times.
+
 vnoremap J j
 vnoremap K k
 
@@ -299,9 +309,9 @@ inoremap <C-d>   <C-o>:res +10<CR>
 nnoremap <C-s>   :vertical res +10<CR>
 inoremap <C-s>   <C-o>:vertical res +10<CR>
 " Increases size of splits incrementally
-nnoremap <expr> <C-a> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
-nnoremap <expr> <C-x> search('x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
-" TODO: hax problems when there are actual x's in the preceeding text.
+nnoremap <expr> <C-a> search('0x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
+nnoremap <expr> <C-x> search('0x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
+" TODO: has problems when there are actual x's in the preceeding text.
 " Makes hex digits show up capital when auto-incrementing/decrementing
 
 nnoremap <A-y>   @q
@@ -557,10 +567,6 @@ augroup Tumbler
 augroup END
 endif
 "<
-
-function! ScrewFtPlugin(timer)
-   noa setlocal formatoptions=jrql2
-endfunction
 
 
 "> Initializations
@@ -1128,6 +1134,10 @@ function! s:Retab(tablength)
    exec "set softtabstop=". mySoftTabStop
 endfunction!
 
+function! ScrewFtPlugin(timer)
+   noa setlocal formatoptions=jrql2
+endfunction
+
 "<
 
 "> Plugins
@@ -1174,6 +1184,8 @@ if filereadable($HOME.'/vimfiles/autoload/plug.vim')
    " Get the most up-to-date version of netrw (This is only a mirror as Chip
    " doesn't use github unfortunately. Hopefully this will change one day)
    Plug 'eiginn/netrw'
+
+   Plug 'tpope/vim-fugitive'
 
    call plug#end()
 endif
