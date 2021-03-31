@@ -940,6 +940,8 @@ function! s:BackoutOfDiff()
          set cursorline
          call s:NextItem(winnr(), 0)
       endif
+   else
+      normal! -
    endif
 endfunction
 
@@ -973,6 +975,8 @@ function! s:BackoutOfSingle()
             " help.
          endtry
       endif
+   else
+      normal! -
    endif
 endfunction
 
