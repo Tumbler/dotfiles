@@ -301,6 +301,8 @@ function! s:Project()
    endif
    let choice = ""
    let track = 0
+   " Change active project to current directory
+   call ProjectManager_ReturnProject(getcwd())
    call s:PrintProject("@||", 0)
    while(track != -1)
       let choice = input("\n(1) Print all projects\n" .
