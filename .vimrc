@@ -311,7 +311,7 @@ inoremap <C-s>   <C-o>:vertical res +10<CR>
 " Increases size of splits incrementally
 nnoremap <expr> <C-a> search('0x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
 nnoremap <expr> <C-x> search('0x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
-" TODO: has problems when there are actual x's in the preceeding text.
+" TODO: hax problems when there are actual x's in the preceeding text.
 " Makes hex digits show up capital when auto-incrementing/decrementing
 
 nnoremap <A-y>   @q
@@ -596,6 +596,7 @@ if filereadable($HOME.'/vimfiles/.vimpref')
 endif
 " Loads additional, location specific, options should there be any
 "< End of Initializations
+
 
 "> Functions
 " Bang after function means if the vimrc is reloaded they will get overwritten
