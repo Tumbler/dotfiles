@@ -1,8 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 09/25/2019 09:07 AM
-let s:Version = 2.18
+" Last Edited: 12/30/2021 12:09 PM
+let s:Version = 2.20
 
 " TODO: Remove Microchip from manager.
 
@@ -517,6 +517,7 @@ function! s:ExecuteCommand(command, options)
          if !has_key(g:ProjectManager, project)
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "N"
+            let g:ProjectManager[project]["name"] = project
             let g:ProjectManager[project]["dirs"] = []
             let g:ProjectManager[project]["optional"] = []
             let g:ProjectManager[project]["excludes"] = []
@@ -537,6 +538,7 @@ function! s:ExecuteCommand(command, options)
             let project = substitute(project, '/\?$', '/', '')
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "R"
+            let g:ProjectManager[project]["name"] = project
             let g:ProjectManager[project]["dirs"] = []
             let g:ProjectManager[project]["optional"] = []
             let g:ProjectManager[project]["excludes"] = []
@@ -1071,7 +1073,28 @@ function! s:AddDirectory(project, dir, relative)
          " requries that the main dir and the secondary dirs have a common root.
          " So if they're nested in the main dir, point them to the main dir's
          " parent.
-         let expandedDir = substitute(expandedDir, "^\\.\\/\\(.\\+\\)\\@=", "\.\.\/". a:project, "")
+         let numOfPojectLayers = len(split(a:project, '/'))
+         let substitutionString = repeat("\.\.\/", numOfPojectLayers)
+         if (matchstr(expandedDir,  "^\\.\\/\\(.\\+\\)\\@=") != "")
+            let expandedDir = substitute(expandedDir, "^\\.\\/\\(.\\+\\)\\@=", substitutionString . a:project, "")
+         else
+            " Make sure that we back out to behind the project if we have a multi-layered project
+            let parents = matchstr(expandedDir, '\(\.\./\)\+')
+            let numOfParents = len(split(parents, '/'))
+
+            if (numOfParents < numOfPojectLayers)
+               let layers = split(a:project, '/')
+               let layerCount = 0
+               let partialProject = ''
+               while ((numOfPojectLayers - numOfParents) > 0)
+                  let partialProject .= layers[layerCount]
+                  let partialProject .= '/'
+                  let numOfPojectLayers -= 1
+                  let layerCount += 1
+               endwhile
+               let expandedDir = substitute(expandedDir, '^\(\.\./\)\+', substitutionString . partialProject, "")
+            endif
+         endif
       else
          let expandedDir = s:ExpandDir(a:dir, 0)
       endif
@@ -1412,7 +1435,7 @@ endfunction
 "     returns - void
 function! s:ProjectVimGrep(searchWord, typeList, global)
    let turnAleBackOn = 0
-   if (g:ale_enabled)
+   if (exists('g:ale_enabled') && g:ale_enabled)
       let turnAleBackOn = 1
       let g:ale_enabled = 0
    endif
