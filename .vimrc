@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/30/2020 10:59 AM
+" Last Edited: 04/14/2022 09:12 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -96,6 +96,7 @@ endif
 "   However, this only works in Gvim.
 
 if v:version >= 802
+   set modeline
    set modelineexpr
    " Allows advanced modelines so we can do fancy folding
 endif
