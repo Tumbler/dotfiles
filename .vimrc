@@ -266,6 +266,12 @@ inoremap <C-v> <C-o>:set paste<CR><C-r>+<C-o>:set nopaste<CR>
 cnoremap <C-v> <C-r>+
 vnoremap <C-v> d"+gP
 vnoremap <C-c> "+y
+" Sometimes Unix forces us to use the middle click for pasting unfortunately. At
+" least make it so that we don't have to grab the mouse.
+if has ('unix')
+   nnoremap <C-S-V> <MiddleMouse>
+   inoremap <C-S-V> <MiddleMouse>
+endif
 
 cnoremap <C-p> <C-r>"
 inoremap <C-p> <C-r>"
