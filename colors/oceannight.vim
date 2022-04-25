@@ -1,8 +1,8 @@
 " @Tracked
 " Vim color file
 " Maintainer:  Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 11/16/2016 03:43 PM
-" Version:     3.3
+" Last Edited: 04/25/2022 04:45 PM
+" Version:     3.5
 
 " cool help screens
 " :highlight
@@ -10,6 +10,9 @@
 " :h highlight-groups
 " :h cterm-colors
 " :h highlight-args
+
+" Use "echo synIDattr(synIDtrans(hlID("{Your_ID}")), "fg#")" to convert between color names and RGB
+" Use 'chrisbra/Colorizer' to converter to cterm values
 
 " This file supports cterm (color terminal) and gui (gVim) (term [black & white terminal] unsupported)
 
@@ -45,11 +48,17 @@ hi Normal         cterm=NONE        ctermbg=236 ctermfg=231    gui=NONE       gu
 hi Pmenu          cterm=NONE        ctermbg=44  ctermfg=18     gui=NONE       guibg=#00C5CD  guifg=#000080 "turquise3, DarkBlue
 hi PmenuSel       cterm=NONE        ctermbg=239 ctermfg=167    gui=NONE       guibg=#4D4D4D  guifg=#CD5C5C "grey30, indianred
 " The auto-complete menu
-hi CursorLine   ctermbg=NONE        ctermbg=238 ctermfg=NONE   gui=NONE       guibg=#454545  guifg=NONE
-hi CursorColumn ctermbg=NONE        ctermbg=238 ctermfg=NONE   gui=NONE       guibg=#454545  guifg=NONE
+hi CursorLine     cterm=NONE        ctermbg=238 ctermfg=NONE   gui=NONE       guibg=#454545  guifg=NONE
+hi CursorColumn   cterm=NONE        ctermbg=238 ctermfg=NONE   gui=NONE       guibg=#454545  guifg=NONE
 " The lines that can be turned on to highlight the entire line/column of the cursor
 hi DiffText       cterm=BOLD        ctermbg=124 ctermfg=NONE   gui=BOLD       guibg=#AA0000  guifg=NONE
 " In a Diff, text that differs but has a matching line
+hi DiffAdd        cterm=BOLD        ctermbg=18  ctermfg=NONE   gui=BOLD       guibg=#000080  guifg=NONE    "DarkBlue
+" In a Diff, text that's in one file but not the other
+hi DiffChange     cterm=BOLD        ctermbg=5   ctermfg=NONE   gui=BOLD       guibg=#8B008B  guifg=NONE    "DarkMagenta
+" In a Diff, text that mataches but is on a line with differing text
+hi DiffDelete     cterm=BOLD        ctermbg=21  ctermfg=6      gui=BOLD       guibg=#0000FF  guifg=#008B8B "DarkCyan, Blue
+" In a Diff, text that is absent
 hi Folded         cterm=NONE        ctermbg=239 ctermfg=220    gui=NONE       guibg=#4D4D4D  guifg=#FFD700 "grey30, gold
 hi FoldColumn     cterm=NONE        ctermbg=239 ctermfg=180    gui=NONE       guibg=#4D4D4D  guifg=#D2B48C "grey30, tan
 " The color of folds in Diffs
@@ -97,6 +106,8 @@ hi Underlined     cterm=UNDERLINE   ctermbg=236 ctermfg=111    gui=UNDERLINE  gu
 " Underlined stuff (like hyper links)
 hi Directory      cterm=NONE        ctermbg=236 ctermfg=51     gui=NONE       guibg=bg       guifg=#00FFFF "cyan
 " Directories in netrw
+hi SignColumn     cterm=NONE        ctermbg=236 ctermfg=NONE   gui=NONE       guibg=#333333  guifg=NONE
+" The color of the column that signs go in
 
 else
    " If we're in a cterm that's under 256 then just do the best we can to the basics
