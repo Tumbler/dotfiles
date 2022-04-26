@@ -1028,7 +1028,7 @@ endfunction
 "     returns - void
 function! OpenNewTabWithNetrw()
    let l:tmp = expand('%')
-   Te
+   Texplore
    exe "normal /^".l:tmp."$\r"
    if exists('g:cvsnetrwIntegration')
       call UpdateCVSHilighting()

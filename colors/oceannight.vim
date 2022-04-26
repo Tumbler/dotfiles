@@ -1,8 +1,8 @@
 " @Tracked
 " Vim color file
 " Maintainer:  Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 04/25/2022 04:45 PM
-" Version:     3.5
+" Last Edited: 04/26/2022 09:11 AM
+" Version:     3.6
 
 " cool help screens
 " :highlight
@@ -12,7 +12,7 @@
 " :h highlight-args
 
 " Use "echo synIDattr(synIDtrans(hlID("{Your_ID}")), "fg#")" to convert between color names and RGB
-" Use 'chrisbra/Colorizer' to converter to cterm values
+" Use 'chrisbra/Colorizer' to convert to cterm values
 
 " This file supports cterm (color terminal) and gui (gVim) (term [black & white terminal] unsupported)
 
@@ -57,7 +57,7 @@ hi DiffAdd        cterm=BOLD        ctermbg=18  ctermfg=NONE   gui=BOLD       gu
 " In a Diff, text that's in one file but not the other
 hi DiffChange     cterm=BOLD        ctermbg=5   ctermfg=NONE   gui=BOLD       guibg=#8B008B  guifg=NONE    "DarkMagenta
 " In a Diff, text that mataches but is on a line with differing text
-hi DiffDelete     cterm=BOLD        ctermbg=21  ctermfg=6      gui=BOLD       guibg=#0000FF  guifg=#008B8B "DarkCyan, Blue
+hi DiffDelete     cterm=BOLD        ctermbg=21  ctermfg=6      gui=BOLD       guibg=#0000FF  guifg=#008B8B "Blue, DarkCyan
 " In a Diff, text that is absent
 hi Folded         cterm=NONE        ctermbg=239 ctermfg=220    gui=NONE       guibg=#4D4D4D  guifg=#FFD700 "grey30, gold
 hi FoldColumn     cterm=NONE        ctermbg=239 ctermfg=180    gui=NONE       guibg=#4D4D4D  guifg=#D2B48C "grey30, tan
@@ -108,6 +108,7 @@ hi Directory      cterm=NONE        ctermbg=236 ctermfg=51     gui=NONE       gu
 " Directories in netrw
 hi SignColumn     cterm=NONE        ctermbg=236 ctermfg=NONE   gui=NONE       guibg=#333333  guifg=NONE
 " The color of the column that signs go in
+hi ColorColumn    cterm=NONE        ctermbg=1   ctermfg=NONE   gui=NONE       guibg=#8B0000  guifg=NONE    "DarkRed
 
 else
    " If we're in a cterm that's under 256 then just do the best we can to the basics
