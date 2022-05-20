@@ -1,7 +1,7 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/30/2021 12:09 PM
+" Last Edited: 05/20/2022 01:33 PM
 let s:Version = 2.20
 
 " TODO: Remove Microchip from manager.
@@ -1451,7 +1451,9 @@ function! s:ProjectVimGrep(searchWord, typeList, global)
    let dirs = ProjectManager_ReturnProjectDirectories(project.name)
 
    let searchDirs = s:FormatVimGrepFiles(dirs, a:typeList)
-   exe "cd " . projectRoot
+   if (projectRoot != "")
+      exe "cd " . projectRoot
+   endif
    " Change directory so that our relative projects can have the correct
    "   starting point
 
