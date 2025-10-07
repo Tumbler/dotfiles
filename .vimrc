@@ -1,11 +1,14 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 04/14/2022 09:12 AM
+" Last Edited: 10/07/2025 03:52 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
 
 "> Settings
+
+scriptencoding utf-8
+
 if (line('$') == 1 && getline(1) == '' && has("gui_running"))
    set columns=84
    set lines=45
@@ -23,8 +26,8 @@ set ruler
 set autoindent
 set smartindent
 " Intelligently auto-indents when new lines that are created with <CR> or "o"
-set list listchars=tab:>-,trail:·,precedes:<,extends:>
-" Tabs are shown as >- and trailing spaces are shown as · See?  ->	 
+set list listchars=tab:>-,trail:Â·,precedes:<,extends:>
+" Tabs are shown as >- and trailing spaces are shown as Â· See?  ->	 
 " When wrap is off (like when in a diff) and the line extends past the screen,
 "   show < or > to indicate that the line continues
 set sidescrolloff=20
@@ -43,7 +46,7 @@ if has("win32") && !has("gui_running")
    inoremap <C-h> <BS>
 endif
 " When in windows-terminal vim, backspace gets mapped to <C-h>
-"   This will allow ternimal vim to function
+"   This will allow terminal vim to function
 set ignorecase
 set smartcase
 " Make searches be case insensitive unless capital letters are used
@@ -71,7 +74,7 @@ set directory=$HOME/vimfiles/swap,.
 "   unavailable for some reason).
 set undofile
 set undodir=$HOME/vimfiles/undo
-" Makes undo's persistant. AKA if you exit a file and then edit again you can
+" Makes undo's persistent. AKA if you exit a file and then edit again you can
 "   still undo your changes from before. (It's sweet)
 set undolevels=10000
 " Sets undo history to 10K changes (Default is 1000).
@@ -185,7 +188,7 @@ cnoreabbrev qh tabdo if (!buflisted(bufnr('%')) && &modifiable == 0) <BAR> tabcl
 cnoreabbrev <expr> cw (getcmdtype() == ':' && getcmdline() =~ '^cw$')? 'copen' : 'cw'
 " Opens the quickfix even if there are no errors. I have other easy ways to close it.
 
-if has("unix") && !has("gui_running")
+if has("unix") && !has("gui_running") && system("uname") != "Darwin\n"
    let c='a'
    while c <= 'z'
      exec "set <A-".c.">=\e".c
@@ -327,7 +330,7 @@ inoremap <A-y>   <Esc>@q
 nnoremap <A-t>   @w
 inoremap <A-t>   <Esc>@w
 " Because sometimes you need two macros
-nnoremap <expr> <A-l>  exists('g:cvsnetrwIntegration')? ":tabnext\<CR>:call UpdateCVSHilighting()\<CR>" : ":tabnext\<CR>"
+nnoremap <A-l>  :tabnext<CR>
 inoremap <A-l> <Right>
 " Switch to next tab
 nnoremap <S-A-l> :tabmove +1<CR>
@@ -335,21 +338,21 @@ inoremap <S-A-l> <Esc>:tabmove +1<CR>
 " Moves tab to the right one position
 cnoremap <A-l>   <Right>
 " Moves right in the command line
-nnoremap <expr> <A-h>  exists('g:cvsnetrwIntegration')? ":tabprevious\<CR>:call UpdateCVSHilighting()\<CR>" : ":tabprevious\<CR>"
+nnoremap <A-h>  :tabprevious<CR>
 inoremap <A-h> <Left>
 " Switch to previous tab
 nnoremap <S-A-h> :tabmove -1<CR>
 inoremap <S-A-h> <Esc>:tabmove -1<CR>
 " Moves tab to the left one position
-cnoremap <A-h>  <Left>
+cnoremap <A-h> <Left>
 " Moves left in the command line
 nnoremap <silent><A-m> :call OpenNewTabWithNetrw()<CR>
 inoremap <silent><A-m> <Esc>:call OpenNewTabWithNetrw()<CR>
 " Opens a new tab with explorer view, looking at previous file
-noremap  <A-j>   :call ShiftScreen("j")<CR>
+nnoremap <A-j>   :call ShiftScreen("j")<CR>
 inoremap <A-j>   <C-o>:call ShiftScreen("j")<CR>
 vnoremap <A-j>   <C-e>j
-noremap  <A-k>   :call ShiftScreen("k")<CR>
+nnoremap <A-k>   :call ShiftScreen("k")<CR>
 inoremap <A-k>   <C-o>:call ShiftScreen("k")<CR>
 vnoremap <A-k>   <C-y>k
 " Move cursor and shift window at the same time (I use this everyday)
@@ -357,8 +360,8 @@ cnoremap <A-k> <Up>
 cnoremap <A-j> <Down>
 nnoremap <expr> <S-A-w> &diffopt=~'iwhite'? ":set diffopt-=iwhite<CR>" : ":set diffopt+=iwhite<CR>"
 " Toggles whitespace diffing.
-nnoremap  <expr> <A-u> &diff? "]c" : "<C-d>"
-nnoremap  <expr> <A-i> &diff? "[c" : "<C-u>"
+nnoremap <expr> <A-u> &diff? "]c" : "<C-d>"
+nnoremap <expr> <A-i> &diff? "[c" : "<C-u>"
 " Move half a page down and up respectively
 "  or (when in a diff) move to next/previous difference
 nnoremap <A-n>   .n
@@ -405,13 +408,13 @@ inoremap <A-b>   <C-o>:set number!<CR>
 nnoremap <A-B>   :call ToggleBinaryMode()<CR>
 inoremap <A-B>   <C-o>:call ToggleBinaryMode()<CR>
 " Open current file in binary mode
-nnoremap <A-a>   :set splitright <BAR> vsplit <BAR> set nosplitright<CR>
+nnoremap <A-a> :set splitright <BAR> vsplit <BAR> set nosplitright<CR>
 " Open up a vertical split to the right. (I want my vplits to use splitright,
 " but I almost never want my diffsplits to. This is my workaround)
 nnoremap <silent><A-v> :call OpenVimrc()<CR>:silent! normal! zO<CR>
 " Opens vimrc (this file) in new tab
 nnoremap <silent><A-V> :call OpenVimrc(1)<CR>:silent! normal! zO<CR>
-" Opens vimrc (this file) in new tab
+" Opens vimpref in new tab
 nnoremap <A-r>   :call OpenVimrc()<CR>GzR
 " Opens vimrc (this file) in new tab and jumps to the regular expression section for quick reference.
 nnoremap <A-.>   :pop<CR>
@@ -441,7 +444,7 @@ vnoremap <silent><A-S> cs<Esc>b
 " Pastes contents of the "saved" register
 
 " File stuff
-map  <A-g> <C-^>
+noremap   <A-g> <C-^>
 "Alt+G to go to alternate file (Usually the last file edited)
 
 vnoremap > >gv
@@ -460,17 +463,17 @@ inoremap <F3>    <C-o>:call ToggleAutoScroll()<CR>
 nnoremap <silent><F4>  :let b:lastSearch = @/<CR>ma/{<CR>%y'a:let @/ = b:lastSearch<CR>
 inoremap <silent><F4>  <C-o>:let b:lastSearch = @/<CR>ma/{<CR>%y'a:let @/ = b:lastSearch<CR>
 " Yank C-style block
-nnoremap <silent><F5>  :noh<CR>
-inoremap <silent><F5>  <C-o>:noh<CR>
-" Clears all highlighting
+nnoremap <F5>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
+inoremap <F5>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
+" Reloads syntax file and vimrc
 nmap <F6> :call VimFunctionDoc()<CR>
 " Adds Tevis style documentation for functions
 " (Place cursor on function name and press F6)
 nnoremap <S-F6>  :call Javadoc()<Esc>
 " Adds Javadoc
-nnoremap <F7>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
-inoremap <F7>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
-" Reloads syntax file and vimrc
+nnoremap <silent><F7>  :noh<CR>
+inoremap <silent><F7>  <C-o>:noh<CR>
+" Clears all highlighting
 nnoremap <S-F9>    :%MkVimball! TumblerVimball<CR>
 nnoremap <S-F12> :call RemoveTrailingWhitespace() <BAR> retab<CR>
 inoremap <S-F12> <C-o>:call RemoveTrailingWhitespace() <BAR> retab<CR>
@@ -495,6 +498,8 @@ vmap <expr> D        exists('g:DVB_TrimWS')? DVB_Duplicate() : ''
 cnoremap %% %:p:h:t/%
 " Creates a generalized previous directory as well as file on the command line.
 
+
+
 "< End of mappings
 
 "> Autocommands
@@ -509,6 +514,9 @@ augroup Tumbler
 
    autocmd VimEnter    * if exists('g:loaded_helplink') | let g:helplink_copy_to_registers = ['+', '*', '"'] | endif
    " Add unnamed register to helplink
+
+   autocmd VimEnter    * call <SID>SetMacAltMappings()
+   " Mac uses command instead of Alt
 
    " Buffer specific stuff
    autocmd BufReadPost * if line("'\"") > 1 && line("'\"") <= line("$") | exe "normal! g`\"" | endif
@@ -527,6 +535,14 @@ augroup Tumbler
 
    autocmd BufReadPost * call SetLineEndings()
 
+   autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
+   " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
+
+   autocmd BufNewFile,BufReadPost,FileType * call timer_start(10, 'ScrewFtPlugin')
+   " Screw ftplugin; this is how I want my formatting!
+augroup END
+augroup QuickComments
+   au!
    " Filetype dependent stuff
    " Perl
    autocmd FileType perl     nmap<buffer>  <A-c>   I#<Esc>$<A-j>
@@ -557,7 +573,7 @@ augroup Tumbler
    autocmd FileType dosbatch imap<buffer> <A-c>    <Esc>I::<Esc>$<A-j>
    autocmd FileType dosbatch nmap<buffer> <A-x>    ^2x$<A-j>
    autocmd FileType dosbatch imap<buffer> <A-x>    <Esc>^2x$<A-j>
-                             " Batch stype quick comments (May God have mercy on your soul)
+                             " Batch style quick comments (May God have mercy on your soul)
 
    " And of course we can't forget Vim files! :D
    autocmd FileType vim      nmap<buffer>  <A-c>   I"<Esc>$<A-j>
@@ -566,15 +582,9 @@ augroup Tumbler
    autocmd FileType vim      imap<buffer>  <A-x>   <Esc>^x$<A-j>
                              " Vim style quick comments
 
-   autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
-   " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
-
-   autocmd BufNewFile,BufReadPost,FileType * call timer_start(10, 'ScrewFtPlugin')
-   " Screw ftplugin; this is how I want my formatting!
 augroup END
 endif
 "<
-
 
 "> Initializations
 " Init all global variables here:
@@ -595,15 +605,10 @@ if !isdirectory($HOME.'/vimfiles/swap')
 endif
 " Makes sure that our location for swap files exists
 if filereadable($HOME.'/vimfiles/.vimpref')
-   if !(exists('g:Tumbler_vimrc'))
-      autocmd VimEnter * source $HOME/vimfiles/.vimpref
-   else
-      source $HOME/vimfiles/.vimpref
-   endif
+   source $HOME/vimfiles/.vimpref
 endif
 " Loads additional, location specific, options should there be any
 "< End of Initializations
-
 
 "> Functions
 " Bang after function means if the vimrc is reloaded they will get overwritten
@@ -1146,6 +1151,56 @@ function! ScrewFtPlugin(timer)
    noa setlocal formatoptions=jrql2
 endfunction
 
+
+" SetMacAltMappings <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Rekeys all alt mappings as command mappings. Only mappings from vimrc
+"          are considered. NOTE: Currently only does n, i, and c maps. You'll
+"          need to edit if you add v or o maps.
+"     returns - void
+function! s:SetMacAltMappings()
+   if (system("uname") != "Darwin\n")
+      " Only for MacOS
+      return
+   endif
+   let maps  = execute("verbose nmap")
+   let maps .= execute("verbose imap")
+   let maps .= execute("verbose cmap")
+
+   " Archive map arguments for later use (because :map command doesn't tell us)
+   let arguments = {}
+   for line in readfile($MYVIMRC)
+      if (line =~ 'map <\(\(buffer\)\|\(nowait\)\|\(silent\)\|\(special\)\|\(script\)\|\(expr\)\|\(unique\)\)>\s*\S\+\s\+\S\+.*$')
+         let argument = matchstr(line, '\(map \)\@<=<.\{-}>')
+         let mapping = substitute(matchstr(line, '\(map '. argument .'\s*\)\@<=\S\+'), '<A-', '<M-', '')
+         let arguments[mapping] = argument
+      endif
+   endfor
+
+   " Read all mappings and remap alt mappings
+   for line in split(maps, "\n")
+      if (line =~ 'from \~\/\.vimrc')
+         let splitLine = split(prevLine, '\s\+')
+         if (len(splitLine) > 2)
+            let mode = splitLine[0]
+            if ((mode == 'n' || mode == 'i' || mode == 'c') && splitLine[1] =~ '<M-')
+               let oldInput = splitLine[1]
+               let input = substitute(oldInput, '<M-', '<D-', 'g')
+               let rightHandSide = matchstr(prevLine, '\(<M-.>\s\+\(\* \)\=\)\@<=[^*]*$')
+               let rightHandSide = substitute(rightHandSide, '\(\\\)\@<!|', '\\|', 'g')
+               if !(has_key(arguments, oldInput))
+                  execute(mode .'noremap '. input .' '. iconv(rightHandSide, 'UTF-8', 'ascii//TRANSLIT'))
+               else
+                  execute(mode .'noremap '. arguments[oldInput] . input .' '. iconv(rightHandSide, 'UTF-8', 'ascii//TRANSLIT'))
+               endif
+            endif
+         endif
+      endif
+
+      let prevLine = line
+   endfor
+
+endfunction
+
 "<
 
 "> Plugins
@@ -1162,22 +1217,23 @@ if !isdirectory($HOME.'/vimfiles/vim-plug_plugin')
    endif
 endif
 
+" TODO This was a cool idea in concecpt, but never worked in practice.
 " Using vim-plug as my plugin manager (https://github.com/junegunn/vim-plug)
-if !filereadable($HOME.'/vimfiles/autoload/plug.vim')
-   if has('win32')
-      " This obviously only works if powerShell is installed, but it's pretty
-      " much the only native way Windows has of doing this.
-      let prevShell = &shell
-      set shell=powershell
-      exec "silent! !(New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim', '".$HOME."/vimfiles/autoload/plug.vim')"
-      exec "set shell=".prevShell
-   elseif has ('unix')
-      silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-   endif
-endif
+"if !filereadable($HOME.'/vimfiles/autoload/plug.vim')
+"   if has('win32')
+"      " This obviously only works if powerShell is installed, but it's pretty
+"      " much the only native way Windows has of doing this.
+"      let prevShell = &shell
+"      set shell=powershell
+"      exec "silent! !(New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim', '".$HOME."/vimfiles/autoload/plug.vim')"
+"      exec "set shell=".prevShell
+"   elseif has ('unix')
+"      silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
+"   endif
+"endif
 
 " Make sure the above worked
-if filereadable($HOME.'/vimfiles/autoload/plug.vim')
+if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable($HOME.'/vimviles/autoload/plug.vim'))
    call plug#begin('~/vimfiles/vim-plug_plugin')
 
    " The best colorscheme
@@ -1191,8 +1247,9 @@ if filereadable($HOME.'/vimfiles/autoload/plug.vim')
 
    " Get the most up-to-date version of netrw (This is only a mirror as Chip
    " doesn't use github unfortunately. Hopefully this will change one day)
-   Plug 'eiginn/netrw'
+   "Plug 'eiginn/netrw'
 
+   " The premier Git plugin for Vim
    Plug 'tpope/vim-fugitive'
 
    call plug#end()

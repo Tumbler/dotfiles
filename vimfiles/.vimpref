@@ -1,0 +1,14 @@
+" Early commands here
+
+if !(exists('g:Tumbler_vimrc'))
+   autocmd VimEnter * call AfterLoadSettings()
+else
+   call AfterLoadSettings()
+endif
+
+
+function! AfterLoadSettings()
+   " Late commands here
+endfun
+
+" vim:ft=vim
