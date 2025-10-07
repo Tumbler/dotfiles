@@ -527,12 +527,6 @@ augroup Tumbler
    autocmd FilterWritePost * if (&diff && exists('w:ColorColumnID')) | call matchdelete(w:ColorColumnID) | unlet w:ColorColumnID | endif
    " When diffing take out the coloring because it looks like diff highlighting.
 
-   autocmd BufReadPre  * nmap<buffer>  <A-c>   I//<Esc>$<A-j>
-   autocmd BufReadPre  * imap<buffer>  <A-c>   <Esc>I//<Esc>$<A-j>
-   autocmd BufReadPre  * nmap<buffer>  <A-x>   ^2x$<A-j>
-   autocmd BufReadPre  * imap<buffer>  <A-x>   <Esc>^2x$<A-j>
-                         " Generalized quick comments (C-style)
-
    autocmd BufReadPost * call SetLineEndings()
 
    autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
@@ -543,6 +537,13 @@ augroup Tumbler
 augroup END
 augroup QuickComments
    au!
+
+   autocmd BufReadPre  * nmap<buffer>  <A-c>   I//<Esc>$<A-j>
+   autocmd BufReadPre  * imap<buffer>  <A-c>   <Esc>I//<Esc>$<A-j>
+   autocmd BufReadPre  * nmap<buffer>  <A-x>   ^2x$<A-j>
+   autocmd BufReadPre  * imap<buffer>  <A-x>   <Esc>^2x$<A-j>
+                         " Generalized quick comments (C-style)
+
    " Filetype dependent stuff
    " Perl
    autocmd FileType perl     nmap<buffer>  <A-c>   I#<Esc>$<A-j>
