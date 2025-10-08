@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/07/2025 03:52 PM
+" Last Edited: 10/08/2025 05:19 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -22,7 +22,11 @@ set hlsearch
 " Highlight all search matches
 set makeprg=mk
 set ruler
-" Add line and column information to the bottom right of the window
+set laststatus=2
+" Permanent status line (format is set in function below)
+set showcmd
+set showcmdloc=statusline
+" During multipart commands, show the keys you have typed so far in the status line
 set autoindent
 set smartindent
 " Intelligently auto-indents when new lines that are created with <CR> or "o"
@@ -158,6 +162,13 @@ endif
 filetype indent on
 " Turn on filetype dependent indenting
 
+if !exists("syntax_on")
+  syntax enable
+endif
+"< End of Settings
+
+"> Abbreviations
+
 inoreabbrev ture true
 " Insert mode abbreviation for misspelling true.
 
@@ -188,6 +199,24 @@ cnoreabbrev qh tabdo if (!buflisted(bufnr('%')) && &modifiable == 0) <BAR> tabcl
 cnoreabbrev <expr> cw (getcmdtype() == ':' && getcmdline() =~ '^cw$')? 'copen' : 'cw'
 " Opens the quickfix even if there are no errors. I have other easy ways to close it.
 
+
+command! -nargs=1 -complete=file Diffsplit diffsplit <args> | wincmd p
+" Diff a file and switches focus back on the original file
+command! Whitespace :call ReplaceBadWhitespaceInDir()
+" Replaces tabs and trailing whitespace in all files in a directory
+command! -nargs=1 Retab :call s:Retab(<args>)
+
+command! Terminal :vsplit | wincmd l | :terminal ++curwin
+" Opens a terminal in a vertically split window on the right
+
+"< End of Abbreviations
+
+"> Mappings
+" <C-x>  means Ctrl+x
+" <A-x>  means Alt+x   (<M-x> means the same thing)
+" <S-x>  means Shift+x
+" These commands can be chained. I.E. <S-A-C-x> NOTE: <C-A-x> and <C-S-x> does not work unless x is an F-key
+
 if has("unix") && !has("gui_running") && system("uname") != "Darwin\n"
    let c='a'
    while c <= 'z'
@@ -199,25 +228,6 @@ if has("unix") && !has("gui_running") && system("uname") != "Darwin\n"
 endif
 " Linux terminals have this weird thing where alt commands don't work at all.
 "   I would die without my alt commands so this is a workaround.
-
-command! -nargs=1 -complete=file Diffsplit diffsplit <args> | wincmd p
-" Diff a file and switches focus back on the original file
-command! Whitespace :call ReplaceBadWhitespaceInDir()
-" Replaces tabs and trailing whitespace in all files in a directory
-command! -nargs=1 Retab :call s:Retab(<args>)
-
-" Colorscheme moved to plugins so we can use a plugin manager.
-
-if !exists("syntax_on")
-  syntax enable
-endif
-"< End of Settings
-
-"> Mappings
-" <C-x>  means Ctrl+x
-" <A-x>  means Alt+x   (<M-x> means the same thing)
-" <S-x>  means Shift+x
-" These commands can be chained. I.E. <S-A-C-x> NOTE: <C-A-x> and <C-S-x> does not work unless x is an F-key
 
 inoremap <A-e> <Esc>
 " Give an alternative to <Esc> that doesn't take your hand as far off of the keyboard
@@ -269,6 +279,9 @@ inoremap <C-v> <C-o>:set paste<CR><C-r>+<C-o>:set nopaste<CR>
 cnoremap <C-v> <C-r>+
 vnoremap <C-v> d"+gP
 vnoremap <C-c> "+y
+if version >= 810
+   tnoremap <expr><C-v> @+
+endif
 " Sometimes Unix forces us to use the middle click for pasting unfortunately. At
 " least make it so that we don't have to grab the mouse.
 if has ('unix')
@@ -424,7 +437,7 @@ inoremap {{ {<Enter>}<Esc>k
 nnoremap <A-z>   za
 " Toggles current fold (It doesn't seem like much of a shortcut but za is really hard to hit)
 nnoremap <A-/> :!start gvim<CR>
-" Opens another gVim instance
+" Opens another gVim instance TODO doesn't work on Mac
 
 " Vimgrep
 nnoremap <A-8>   :exec "ProjectGrep \\<". expand('<cword>') ."\\>"<CR>
@@ -444,7 +457,7 @@ vnoremap <silent><A-S> cs<Esc>b
 " Pastes contents of the "saved" register
 
 " File stuff
-noremap   <A-g> <C-^>
+nnoremap <A-g> <C-^>
 "Alt+G to go to alternate file (Usually the last file edited)
 
 vnoremap > >gv
@@ -514,6 +527,8 @@ augroup Tumbler
 
    autocmd VimEnter    * if exists('g:loaded_helplink') | let g:helplink_copy_to_registers = ['+', '*', '"'] | endif
    " Add unnamed register to helplink
+
+   autocmd VimEnter    * call <SID>SetStatusLine()
 
    autocmd VimEnter    * call <SID>SetMacAltMappings()
    " Mac uses command instead of Alt
@@ -1202,7 +1217,15 @@ function! s:SetMacAltMappings()
 
 endfunction
 
-"<
+function! s:SetStatusLine()
+   if exists('g:loaded_fugitive')
+     set statusline=%<%.45F\ %w%m%r%=%{FugitiveStatusline()}%=%-5S%=%-14.(%l,%c%V%)\ %P
+   else
+     set statusline=%<%.45F\ %w%m%r%=%-5S%=%-14.(%l,%c%V%)\ %P
+   endif
+endfunction
+
+"< End of Functions
 
 "> Plugins
 
@@ -1218,22 +1241,8 @@ if !isdirectory($HOME.'/vimfiles/vim-plug_plugin')
    endif
 endif
 
-" TODO This was a cool idea in concecpt, but never worked in practice.
 " Using vim-plug as my plugin manager (https://github.com/junegunn/vim-plug)
-"if !filereadable($HOME.'/vimfiles/autoload/plug.vim')
-"   if has('win32')
-"      " This obviously only works if powerShell is installed, but it's pretty
-"      " much the only native way Windows has of doing this.
-"      let prevShell = &shell
-"      set shell=powershell
-"      exec "silent! !(New-Object System.Net.WebClient).DownloadFile('https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim', '".$HOME."/vimfiles/autoload/plug.vim')"
-"      exec "set shell=".prevShell
-"   elseif has ('unix')
-"      silent !curl -fLo ~/.vim/autoload/plug.vim --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim
-"   endif
-"endif
 
-" Make sure the above worked
 if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable($HOME.'/vimviles/autoload/plug.vim'))
    call plug#begin('~/vimfiles/vim-plug_plugin')
 
@@ -1255,6 +1264,8 @@ if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable
 
    call plug#end()
 endif
+
+" Not a vim plugin, but use https://github.com/universal-ctags/ctags for ctags installation
 
 " Load our colorscheme if we can.
 try
