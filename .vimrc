@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/08/2025 05:19 PM
+" Last Edited: 10/09/2025 09:58 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -20,7 +20,7 @@ set incsearch
 " When searching with "/" you will see initial matches as you search
 set hlsearch
 " Highlight all search matches
-set makeprg=mk
+"set makeprg=mk
 set ruler
 set laststatus=2
 " Permanent status line (format is set in function below)
@@ -334,7 +334,7 @@ inoremap <C-s>   <C-o>:vertical res +10<CR>
 " Increases size of splits incrementally
 nnoremap <expr> <C-a> search('0x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
 nnoremap <expr> <C-x> search('0x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
-" TODO: hax problems when there are actual x's in the preceeding text.
+" TODO: has problems when there are actual x's in the preceeding text.
 " Makes hex digits show up capital when auto-incrementing/decrementing
 
 nnoremap <A-y>   @q
@@ -436,8 +436,12 @@ inoremap {{ {<Enter>}<Esc>k
 " Auto puts closing brace and indents you to the right place automatically
 nnoremap <A-z>   za
 " Toggles current fold (It doesn't seem like much of a shortcut but za is really hard to hit)
-nnoremap <A-/> :!start gvim<CR>
-" Opens another gVim instance TODO doesn't work on Mac
+if system('uname') == "Darwin\n"
+   nnoremap <D-/> :macaction newWindow:<CR>
+else
+   nnoremap <A-/> :!start gvim<CR>
+endif
+" Opens another gVim instance
 
 " Vimgrep
 nnoremap <A-8>   :exec "ProjectGrep \\<". expand('<cword>') ."\\>"<CR>
@@ -1201,7 +1205,7 @@ function! s:SetMacAltMappings()
             if ((mode == 'n' || mode == 'i' || mode == 'c') && splitLine[1] =~ '<M-')
                let oldInput = splitLine[1]
                let input = substitute(oldInput, '<M-', '<D-', 'g')
-               let rightHandSide = matchstr(prevLine, '\(<M-.>\s\+\(\* \)\=\)\@<=[^*]*$')
+               let rightHandSide = matchstr(prevLine, '\(<M-.\{-}>\s\+\(\* \)\=\)\@<=[^*]*$')
                let rightHandSide = substitute(rightHandSide, '\(\\\)\@<!|', '\\|', 'g')
                if !(has_key(arguments, oldInput))
                   execute(mode .'noremap '. input .' '. iconv(rightHandSide, 'UTF-8', 'ascii//TRANSLIT'))
@@ -1218,10 +1222,11 @@ function! s:SetMacAltMappings()
 endfunction
 
 function! s:SetStatusLine()
+   hi statusLineCmd cterm=BOLD ctermbg=bg gui=BOLD guibg=#C2BFA5 guifg=#9010D0
    if exists('g:loaded_fugitive')
-     set statusline=%<%.45F\ %w%m%r%=%{FugitiveStatusline()}%=%-5S%=%-14.(%l,%c%V%)\ %P
+     set statusline=%<%.45F\ %w%m%r%=%#Identifier#%{FugitiveStatusline()}%#StatusLine#%=%#statusLineCmd#%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
    else
-     set statusline=%<%.45F\ %w%m%r%=%-5S%=%-14.(%l,%c%V%)\ %P
+     set statusline=%<%.45F\ %w%m%r%=%#Changed#%%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
    endif
 endfunction
 
@@ -1261,6 +1266,7 @@ if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable
 
    " The premier Git plugin for Vim
    Plug 'tpope/vim-fugitive'
+   "Plug 'tpopo/vim-rhubarb'
 
    call plug#end()
 endif
