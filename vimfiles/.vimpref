@@ -11,4 +11,38 @@ function! AfterLoadSettings()
    " Late commands here
 endfun
 
+" Making is always very project dependent, but here's a function to get you started.
+" nnoremap <A-\> :call MakeProj()<CR>
+function! MakeProj(...)
+   set noautochdir
+      cclose
+      update
+      echo "Building...."
+      if (a:0 > 0 && a:1 == "all")
+         "Make all
+         silent make -B
+      else
+         silent make
+      endif
+      cw
+      wincmd k
+      let buildSucceeded = 1
+      for error in getqflist()
+         if error.lnum != 0
+            " Found an error, build failed
+            let buildSucceeded = 0
+            break
+         endif
+      endfor
+      if (buildSucceeded)
+         echo "\n"
+         echohl TODO
+         echo "Build Succeeded!"
+         echohl NORMAL
+      else
+         call EchoError("Build Failed!")
+      endif
+   set autochdir
+endfunction
+
 " vim:ft=vim
