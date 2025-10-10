@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/09/2025 09:58 AM
+" Last Edited: 10/10/2025 03:58 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -146,9 +146,6 @@ let g:ale_set_loclist = 0
 let g:ale_sign_column_always = 1
 
 let g:ale_change_sign_column_color = 1
-hi SignColumn guibg=#333333
-hi ALESignColumnWithoutErrors guibg=#333333
-hi ALESignColumnWithErrors guibg=#333333
 
 "<<
 
@@ -280,7 +277,10 @@ cnoremap <C-v> <C-r>+
 vnoremap <C-v> d"+gP
 vnoremap <C-c> "+y
 if version >= 810
+   tnoremap <Esc> <C-w>N
+   "Terminal Normal mode
    tnoremap <expr><C-v> @+
+   tnoremap <expr><C-p> @"
 endif
 " Sometimes Unix forces us to use the middle click for pasting unfortunately. At
 " least make it so that we don't have to grab the mouse.
@@ -1267,6 +1267,10 @@ if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable
    " The premier Git plugin for Vim
    Plug 'tpope/vim-fugitive'
    "Plug 'tpopo/vim-rhubarb'
+
+   " Vim linter
+   Plug 'dense-analysis/ale'
+   " Might need 'packloadall | silent! helptags ALL' to make help work
 
    call plug#end()
 endif
