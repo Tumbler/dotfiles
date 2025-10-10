@@ -25,7 +25,9 @@ set ruler
 set laststatus=2
 " Permanent status line (format is set in function below)
 set showcmd
-set showcmdloc=statusline
+if v:version >= 900
+   set showcmdloc=statusline
+endif
 " During multipart commands, show the keys you have typed so far in the status line
 set autoindent
 set smartindent
@@ -1224,9 +1226,11 @@ endfunction
 function! s:SetStatusLine()
    hi statusLineCmd cterm=BOLD ctermbg=bg gui=BOLD guibg=#C2BFA5 guifg=#9010D0
    if exists('g:loaded_fugitive')
-     set statusline=%<%.45F\ %w%m%r%=%#Identifier#%{FugitiveStatusline()}%#StatusLine#%=%#statusLineCmd#%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
+      set statusline=%<%.45F\ %w%m%r%=%#Identifier#%{FugitiveStatusline()}%#StatusLine#%=%#statusLineCmd#%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
+   elseif v:version >= 900
+      set statusline=%<%.45F\ %w%m%r%=%#Changed#%%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
    else
-     set statusline=%<%.45F\ %w%m%r%=%#Changed#%%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
+      set statusline=%<%.45F\ %w%m%r%=%=%-14.(%l,%c%V%)\ %P
    endif
 endfunction
 
