@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/10/2025 03:58 PM
+" Last Edited: 10/13/2025 11:41 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -121,6 +121,8 @@ set formatoptions=jrql2
 " ftplugin Overrides this (which is ANNOYING BTW). I have an autocmd to override
 " ftplugin because this is how I want it dang it!
 
+set mouse=a
+
 ">> Plugin settings
 let g:netrw_sort_sequence='[\/]$,*,\.o$,\.obj$,\.info$,\.d$,\.hex$,\.map$,\.mcp$,\.mcw$,\.lib$,\.swp$,\.bak$,\.lst$,\.rlf$,\.sdb$,\.CVSfolderStatus,\~$'
 " Change sorting sequence of netrw explorer to leave different filetypes together
@@ -205,8 +207,8 @@ command! Whitespace :call ReplaceBadWhitespaceInDir()
 " Replaces tabs and trailing whitespace in all files in a directory
 command! -nargs=1 Retab :call s:Retab(<args>)
 
-command! Terminal :vsplit | wincmd l | :terminal ++curwin
-" Opens a terminal in a vertically split window on the right
+command! -nargs=? Terminal :call s:OpenDirectionalTerminal('<args>')
+" Opens a terminal in a split window in the specified direction (defaults right)
 
 "< End of Abbreviations
 
@@ -278,11 +280,19 @@ inoremap <C-v> <C-o>:set paste<CR><C-r>+<C-o>:set nopaste<CR>
 cnoremap <C-v> <C-r>+
 vnoremap <C-v> d"+gP
 vnoremap <C-c> "+y
+" Makes copy paste in the terminal function very intuitively across all
+" operating systems and uses a very minimal number of keystrokes all while still
+" having access to CTRL-c for ending terminal processes. Also gives easy access
+" to "Terminal-Normal" mode which can be useful for searching through terminal
+" output without having to pipe to another process.
 if version >= 810
+   nnoremap <expr><Esc> (mode(1) == 'nt') ? 'i' : '<Esc>'
    tnoremap <Esc> <C-w>N
+   tnoremap <LeftMouse> <C-w>N:set nonumber<CR><LeftMouse>
    "Terminal Normal mode
    tnoremap <expr><C-v> @+
    tnoremap <expr><C-p> @"
+   vnoremap <expr><C-c> (&buftype == 'terminal') ? '"+yi' : '"+y'
 endif
 " Sometimes Unix forces us to use the middle click for pasting unfortunately. At
 " least make it so that we don't have to grab the mouse.
@@ -327,6 +337,7 @@ if version >= 810
    tnoremap <C-k>  <C-W>k
    tnoremap <C-h>  <C-W>h
    tnoremap <C-l>  <C-W>l
+   tnoremap :q  exit
 endif
 " Same as the above but for termal splits (Only available starting in 8.1)
 nnoremap <C-d>   :res +10<CR>
@@ -1226,11 +1237,30 @@ endfunction
 function! s:SetStatusLine()
    hi statusLineCmd cterm=BOLD ctermbg=bg gui=BOLD guibg=#C2BFA5 guifg=#9010D0
    if exists('g:loaded_fugitive')
-      set statusline=%<%.45F\ %w%m%r%=%#Identifier#%{FugitiveStatusline()}%#StatusLine#%=%#statusLineCmd#%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
+     set statusline=%<%.45F\ %w%m%r%=%#Identifier#%{FugitiveStatusline()}%#StatusLine#%=%#statusLineCmd#%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
    elseif v:version >= 900
       set statusline=%<%.45F\ %w%m%r%=%#Changed#%%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
    else
       set statusline=%<%.45F\ %w%m%r%=%=%-14.(%l,%c%V%)\ %P
+   endif
+endfunction
+
+" OpenDirectionalTerminal <><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Opens a terminal in a split window in the specified direction
+"          (defaults right)
+"     input   - optional: [h j k or l]
+"     returns - void
+function! s:OpenDirectionalTerminal(...)
+   if (len(a:000) == 0 || a:1 ==# '' || a:1 ==# 'l')
+      execute('vsplit | wincmd l | terminal ++curwin')
+   elseif (a:1 ==# 'h')
+      execute('vsplit | terminal ++curwin')
+   elseif (a:1 ==# 'k')
+      execute('terminal')
+   elseif (a:1 ==# 'j')
+      execute('split | wincmd j | terminal ++curwin')
+   else
+      execute('vsplit | wincmd l | terminal ++curwin')
    endif
 endfunction
 
