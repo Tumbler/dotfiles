@@ -1,7 +1,7 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 05/20/2022 01:33 PM
+" Last Edited: 10/14/2025 04:20 PM
 let s:Version = 2.20
 
 " TODO: Remove Microchip from manager.
@@ -79,6 +79,11 @@ else
    nnoremap <A-<> :call <SID>GenerateCTags()<CR>
 endif
 " Runs ctags on current project
+
+let s:maxSplits = 2
+if (exists('g:projectManger_MaxSplits'))
+   let s:maxSplits = g:projectManger_MaxSplits
+endif
 
 " ProjectManager_ReturnProject <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Returns the dirs in a project as list
@@ -1576,12 +1581,18 @@ function! s:TraverseCtag(...)
       endif
       let initialWinNum = winnr("$")
       let initialTabNum = tabpagenr()
-      " This is <A-q>
-      normal ñ
+      if (&diff)
+         diffoff!
+         wincmd w
+         q
+      else
+         cclose
+         lclose
+      endif
       let l:windowNr = winnr("$")
       let tag = expand('<cword>')
       let tagFile = s:ReturnTagFile(tag)
-      if (&columns >= (80 * (l:windowNr + 1)))
+      if (&columns >= (80 * (l:windowNr + 1)) && l:windowNr < s:maxSplits)
          vsplit
          wincmd l
          exec "tag " . tag
@@ -1762,7 +1773,7 @@ endfunction
 
 " The MIT License (MIT)
 "
-" Copyright © 2018 Warren Terrall
+" Copyright Â© 2018 Warren Terrall
 "
 " Permission is hereby granted, free of charge, to any person obtaining a copy
 " of this software and associated documentation files (the "Software"), to
