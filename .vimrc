@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/13/2025 11:41 AM
+" Last Edited: 10/14/2025 01:17 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -145,11 +145,20 @@ let g:projectManager_TagKeyCombo = '<A-,>'
 
 let g:baseConverter_leading_binary_zeros = 1
 
+" Ale
 let g:ale_set_quickfix = 0
 let g:ale_set_loclist = 0
 let g:ale_sign_column_always = 1
 
 let g:ale_change_sign_column_color = 1
+
+let g:ale_lint_on_text_changed = 'normal'
+let g:ale_lint_on_insert_leave = 1
+let g:ale_lint_on_enter = 1
+let g:ale_lint_on_save = 1
+let g:ale_completion_enabled = 1
+let g:ale_sign_error = '>>'
+let g:ale_sign_warning = '--'
 
 "<<
 
@@ -287,12 +296,13 @@ vnoremap <C-c> "+y
 " output without having to pipe to another process.
 if version >= 810
    nnoremap <expr><Esc> (mode(1) == 'nt') ? 'i' : '<Esc>'
-   tnoremap <Esc> <C-w>N
+   tnoremap <A-e> <C-w>N
    tnoremap <LeftMouse> <C-w>N:set nonumber<CR><LeftMouse>
    "Terminal Normal mode
    tnoremap <expr><C-v> @+
    tnoremap <expr><C-p> @"
    vnoremap <expr><C-c> (&buftype == 'terminal') ? '"+yi' : '"+y'
+   tnoremap <S-Space> <Space>
 endif
 " Sometimes Unix forces us to use the middle click for pasting unfortunately. At
 " least make it so that we don't have to grab the mouse.
@@ -367,6 +377,13 @@ cnoremap <A-l>   <Right>
 nnoremap <A-h>  :tabprevious<CR>
 inoremap <A-h> <Left>
 " Switch to previous tab
+if version >= 810
+   nnoremap <expr> o (mode(1) == 'nt') ? 'i' : 'o'
+   tnoremap <A-l> <C-w>N:let b:termSwap = 1 <BAR> :tabnext<CR>
+   tnoremap <A-h> <C-w>N:let b:termSwap = 1 <BAR> :tabprevious<CR>
+   autocmd ModeChanged *:t let b:termSwap = 0
+   autocmd BufEnter * if (&buftype ==# 'terminal' && mode(1) == 'nt' && b:termSwap == 1) | exe 'normal! i' | let b:termSwap = 0 | endif
+endif
 nnoremap <S-A-h> :tabmove -1<CR>
 inoremap <S-A-h> <Esc>:tabmove -1<CR>
 " Moves tab to the left one position
@@ -560,6 +577,8 @@ augroup Tumbler
    " When diffing take out the coloring because it looks like diff highlighting.
 
    autocmd BufReadPost * call SetLineEndings()
+
+   autocmd ModeChanged *:t setlocal nonumber
 
    autocmd CmdwinEnter * if getcmdwintype() == '@' | setlocal spell | startinsert! | endif
    " If using command window from an input turn on spell check (Only available in Vim 7.4.338 and above)
@@ -1189,6 +1208,10 @@ endfunction
 "   brief: Rekeys all alt mappings as command mappings. Only mappings from vimrc
 "          are considered. NOTE: Currently only does n, i, and c maps. You'll
 "          need to edit if you add v or o maps.
+"          Random: Use:
+"                      'defaults write org.vim.MacVim NSUserKeyEquivalents -dict-add "Quit MacVim" nil'
+"                      'defaults write org.vim.MacVim NSUserKeyEquivalents -dict-add "Settings..." nil'
+"                  to restore use of <D-q> and <D-,> in MacVim
 "     returns - void
 function! s:SetMacAltMappings()
    if (system("uname") != "Darwin\n")
@@ -1198,6 +1221,7 @@ function! s:SetMacAltMappings()
    let maps  = execute("verbose nmap")
    let maps .= execute("verbose imap")
    let maps .= execute("verbose cmap")
+   let maps .= execute("verbose tmap")
 
    " Archive map arguments for later use (because :map command doesn't tell us)
    let arguments = {}
@@ -1215,7 +1239,8 @@ function! s:SetMacAltMappings()
          let splitLine = split(prevLine, '\s\+')
          if (len(splitLine) > 2)
             let mode = splitLine[0]
-            if ((mode == 'n' || mode == 'i' || mode == 'c') && splitLine[1] =~ '<M-')
+            if ((mode =~ '[nict]') && splitLine[1] =~ '<M-')
+               echom mode
                let oldInput = splitLine[1]
                let input = substitute(oldInput, '<M-', '<D-', 'g')
                let rightHandSide = matchstr(prevLine, '\(<M-.\{-}>\s\+\(\* \)\=\)\@<=[^*]*$')
@@ -1238,8 +1263,8 @@ function! s:SetStatusLine()
    hi statusLineCmd cterm=BOLD ctermbg=bg gui=BOLD guibg=#C2BFA5 guifg=#9010D0
    if exists('g:loaded_fugitive')
      set statusline=%<%.45F\ %w%m%r%=%#Identifier#%{FugitiveStatusline()}%#StatusLine#%=%#statusLineCmd#%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
-   elseif v:version >= 900
-      set statusline=%<%.45F\ %w%m%r%=%#Changed#%%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
+elseif v:version >= 900
+      set statusline=%<%.45F\ %w%m%r%=%#StatusLineCmd#%%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
    else
       set statusline=%<%.45F\ %w%m%r%=%=%-14.(%l,%c%V%)\ %P
    endif
