@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/14/2025 08:48 PM
+" Last Edited: 10/15/2025 04:43 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -381,6 +381,7 @@ if version >= 810
    nnoremap <expr> o (mode(1) == 'nt') ? 'i' : 'o'
    tnoremap <A-l> <C-w>N:let b:termSwap = 1 <BAR> :tabnext<CR>
    tnoremap <A-h> <C-w>N:let b:termSwap = 1 <BAR> :tabprevious<CR>
+   tnoremap <A-m> <C-w>N:let b:termSwap = 1 <BAR> :call OpenNewTabWithNetrw()<CR>
    autocmd ModeChanged *:t let b:termSwap = 0
    autocmd BufEnter * if (&buftype ==# 'terminal' && mode(1) == 'nt' && b:termSwap == 1) | exe 'normal! i' | let b:termSwap = 0 | endif
 endif
@@ -1240,7 +1241,6 @@ function! s:SetMacAltMappings()
          if (len(splitLine) > 2)
             let mode = splitLine[0]
             if ((mode =~ '[nict]') && splitLine[1] =~ '<M-')
-               echom mode
                let oldInput = splitLine[1]
                let input = substitute(oldInput, '<M-', '<D-', 'g')
                let rightHandSide = matchstr(prevLine, '\(<M-.\{-}>\s\+\(\* \)\=\)\@<=[^*]*$')
@@ -1277,15 +1277,18 @@ endfunction
 "     returns - void
 function! s:OpenDirectionalTerminal(...)
    if (len(a:000) == 0 || a:1 ==# '' || a:1 ==# 'l')
-      execute('vsplit | wincmd l | terminal ++curwin')
-   elseif (a:1 ==# 'h')
-      execute('vsplit | terminal ++curwin')
-   elseif (a:1 ==# 'k')
       execute('terminal')
-   elseif (a:1 ==# 'j')
-      execute('split | wincmd j | terminal ++curwin')
-   else
-      execute('vsplit | wincmd l | terminal ++curwin')
+      execute('wincmd L')
+   elseif (a:1 ==? 'h')
+      execute('terminal')
+      execute('wincmd H')
+   elseif (a:1 ==? 'k')
+      execute('terminal')
+   elseif (a:1 ==? 'j')
+      execute('terminal')
+      execute('wincmd J')
+   elseif (a:1 =~ 'ne\=w\=\|ta\=b\=')
+      execute('tabnew | terminal ++curwin')
    endif
 endfunction
 
@@ -1307,7 +1310,7 @@ endif
 
 " Using vim-plug as my plugin manager (https://github.com/junegunn/vim-plug)
 
-if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable($HOME.'/vimfiles/autoload/plug.vim'))
+if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable($HOME.'/vimviles/autoload/plug.vim'))
    call plug#begin('~/vimfiles/vim-plug_plugin')
 
    " The best colorscheme
