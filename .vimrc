@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/14/2025 01:17 PM
+" Last Edited: 10/14/2025 08:48 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -1263,8 +1263,8 @@ function! s:SetStatusLine()
    hi statusLineCmd cterm=BOLD ctermbg=bg gui=BOLD guibg=#C2BFA5 guifg=#9010D0
    if exists('g:loaded_fugitive')
      set statusline=%<%.45F\ %w%m%r%=%#Identifier#%{FugitiveStatusline()}%#StatusLine#%=%#statusLineCmd#%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
-elseif v:version >= 900
-      set statusline=%<%.45F\ %w%m%r%=%#StatusLineCmd#%%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
+   elseif v:version >= 900
+      set statusline=%<%.45F\ %w%m%r%=%#statusLineCmd#%-5S%#StatusLine#%=%-14.(%l,%c%V%)\ %P
    else
       set statusline=%<%.45F\ %w%m%r%=%=%-14.(%l,%c%V%)\ %P
    endif
@@ -1307,7 +1307,7 @@ endif
 
 " Using vim-plug as my plugin manager (https://github.com/junegunn/vim-plug)
 
-if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable($HOME.'/vimviles/autoload/plug.vim'))
+if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable($HOME.'/vimfiles/autoload/plug.vim'))
    call plug#begin('~/vimfiles/vim-plug_plugin')
 
    " The best colorscheme
