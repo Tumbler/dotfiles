@@ -347,7 +347,6 @@ if version >= 810
    tnoremap <C-k>  <C-W>k
    tnoremap <C-h>  <C-W>h
    tnoremap <C-l>  <C-W>l
-   tnoremap :q  exit
 endif
 " Same as the above but for termal splits (Only available starting in 8.1)
 nnoremap <C-d>   :res +10<CR>
@@ -402,6 +401,10 @@ vnoremap <A-k>   <C-y>k
 " Move cursor and shift window at the same time (I use this everyday)
 cnoremap <A-k> <Up>
 cnoremap <A-j> <Down>
+if version >= 810
+   tnoremap <A-j> <Down>
+   tnoremap <A-k> <Up>
+endif
 nnoremap <expr> <S-A-w> &diffopt=~'iwhite'? ":set diffopt-=iwhite<CR>" : ":set diffopt+=iwhite<CR>"
 " Toggles whitespace diffing.
 nnoremap <expr> <A-u> &diff? "]c" : "<C-d>"
@@ -586,6 +589,8 @@ augroup Tumbler
 
    autocmd BufNewFile,BufReadPost,FileType * call timer_start(10, 'ScrewFtPlugin')
    " Screw ftplugin; this is how I want my formatting!
+
+   autocmd FileType gitcommit set t_Co=256
 augroup END
 augroup QuickComments
    au!
