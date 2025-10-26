@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/15/2025 04:43 PM
+" Last Edited: 10/25/2025 11:03 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -93,7 +93,7 @@ if has("gui_running") && has("autocmd")
 augroup Focus
    au!
    autocmd FocusGained * let @" = @+
-   autocmd FocusLost   * let @+ = @"
+   autocmd FocusLost   * let @+ = trim(@", "", 2)
 augroup END
 else
    set clipboard^=unnamed
@@ -472,6 +472,8 @@ nnoremap <A-z>   za
 " Toggles current fold (It doesn't seem like much of a shortcut but za is really hard to hit)
 if system('uname') == "Darwin\n"
    nnoremap <D-/> :macaction newWindow:<CR>
+elseif has("unix")
+   nnoremap <A-/> :!gvim<CR>
 else
    nnoremap <A-/> :!start gvim<CR>
 endif
