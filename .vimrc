@@ -167,6 +167,9 @@ if has("gui_running")
    " This removes the menu bar from the gui
    set guioptions-=T
    " This removes the toolbar from the gui
+   set guioptions+=c
+   " This allows vim to handle confirmations terminal style instead of in a
+   " dialog box
 endif
 
 filetype indent on
