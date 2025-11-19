@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/30/2025 05:17 PM
+" Last Edited: 11/19/2025 02:31 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -175,6 +175,7 @@ filetype indent on
 if !exists("syntax_on")
   syntax enable
 endif
+
 "< End of Settings
 
 "> Abbreviations
@@ -349,6 +350,8 @@ if version >= 810
    tnoremap <C-l>  <C-W>l
 endif
 " Same as the above but for termal splits (Only available starting in 8.1)
+inoremap <expr> <Tab>  pumvisible() ? "<Down><C-y>" : "<Tab>"
+   " If AutoComplete box is open, accep the current selection
 nnoremap <C-d>   :res +10<CR>
 inoremap <C-d>   <C-o>:res +10<CR>
 nnoremap <C-s>   :vertical res +10<CR>
@@ -488,8 +491,8 @@ nnoremap <A-P>  :call NextQuickFix(1)<CR>
 " Jumps to the next/previous item in the quickfix
 nnoremap <S-CR>   :set switchbuf+=newtab<CR><CR>:set switchbuf-=newtab<CR>
 " Shift+Enter opens files from quickfix in a new tab
-nnoremap <expr> <A-q> (&diff)? ':diffoff!<CR>w:q<CR>' : ':cclose <BAR> :lclose<CR>'
-inoremap <expr> <A-q> (&diff)? '<C-o>:diffoff!<CR><C-o>w:q<CR>' : '<C-o>:cclose <BAR> :lclose<CR>'
+nnoremap <A-q> :call <SID>SmartQuit()<CR>
+inoremap <A-q> <C-o>:call <SID>SmartQuit()<CR>
 " Closes diff or quickfix window
 nnoremap <silent><A-s> :let @z=@" <bar> let @"=@s <bar> let @s=@z <CR>
 " Saves the unamed register to register s for later use. Press again to restore.
@@ -516,8 +519,14 @@ inoremap <F3>    <C-o>:call ToggleAutoScroll()<CR>
 nnoremap <silent><F4>  :let b:lastSearch = @/<CR>ma/{<CR>%y'a:let @/ = b:lastSearch<CR>
 inoremap <silent><F4>  <C-o>:let b:lastSearch = @/<CR>ma/{<CR>%y'a:let @/ = b:lastSearch<CR>
 " Yank C-style block
-nnoremap <F5>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
-inoremap <F5>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
+nnoremap <F5>    :e<CR>
+inoremap <F5>    <C-o>:e<CR>
+" Reloads the current file from disk
+nnoremap <F5>    :e!<CR>
+inoremap <F5>    <C-o>:e!<CR>
+" Force reloads the current file from disk and abandons current changes
+nnoremap <C-F5>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
+inoremap <C-F5>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 " Reloads syntax file and vimrc
 nmap <F6> :call VimFunctionDoc()<CR>
 " Adds Tevis style documentation for functions
@@ -581,6 +590,7 @@ augroup Tumbler
    " Highlight the 81st character on the line if it's not the quickfix.
    autocmd FilterWritePost * if (&diff && exists('w:ColorColumnID')) | call matchdelete(w:ColorColumnID) | unlet w:ColorColumnID | endif
    " When diffing take out the coloring because it looks like diff highlighting.
+   autocmd VimResized * if (&diff) | wincmd = | endif
 
    autocmd BufReadPost * call SetLineEndings()
 
@@ -1226,6 +1236,7 @@ function! s:SetMacAltMappings()
       " Only for MacOS
       return
    endif
+
    let maps  = execute("verbose nmap")
    let maps .= execute("verbose imap")
    let maps .= execute("verbose cmap")
@@ -1277,7 +1288,7 @@ function! MyAleStatus()
       return '%#Todo#W:'. warnings .'%#StatusLine#'
    endif
 
-   return ''
+   return '   '
 endfunction
 
 function! s:SetStatusLine()
@@ -1320,6 +1331,28 @@ function! s:OpenDirectionalTerminal(...)
    endif
 endfunction
 
+function s:SmartQuit()
+   if (&diff)
+      let startingBuf = bufnr()
+      wincmd w
+      while 1
+         if (&diff)
+            quit
+         endif
+
+         if startingBuf != bufnr()
+            wincmd w
+         else
+            break
+         endif
+      endwhile
+   else
+      cclose
+      lclose
+      pclose
+   endif
+endfunction
+
 "< End of Functions
 
 "> Plugins
@@ -1350,10 +1383,6 @@ if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable
    " Graphical undo tree
    Plug 'mbbill/undotree'
 
-   " Get the most up-to-date version of netrw (This is only a mirror as Chip
-   " doesn't use github unfortunately. Hopefully this will change one day)
-   "Plug 'eiginn/netrw'
-
    " The premier Git plugin for Vim
    Plug 'tpope/vim-fugitive'
    "Plug 'tpopo/vim-rhubarb'
@@ -1366,6 +1395,8 @@ if (has("unix") && filereadable($HOME.'/.vim/autoload/plug.vim') || filereadable
 endif
 
 " Not a vim plugin, but use https://github.com/universal-ctags/ctags for ctags installation
+
+" Use for git integration: `git config --global core.editor "[gvim name or path] -g --remote-wait-silent”`
 
 " Load our colorscheme if we can.
 try
