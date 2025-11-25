@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 11/19/2025 02:31 PM
+" Last Edited: 11/21/2025 10:57 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -388,7 +388,7 @@ if version >= 810
    tnoremap <A-h> <C-w>N:let b:termSwap = 1 <BAR> :tabprevious<CR>
    tnoremap <A-m> <C-w>N:let b:termSwap = 1 <BAR> :call OpenNewTabWithNetrw()<CR>
    autocmd ModeChanged *:t let b:termSwap = 0
-   autocmd BufEnter * if (&buftype ==# 'terminal' && mode(1) == 'nt' && b:termSwap == 1) | exe 'normal! i' | let b:termSwap = 0 | endif
+   autocmd BufEnter * if (&buftype ==# 'terminal' && mode(1) == 'nt' && (b:termSwap == 1 || g:in_git_commit == 1)) | exe 'normal! i' | let b:termSwap = 0 | let g:in_git_commit = 0 | endif
 endif
 nnoremap <S-A-h> :tabmove -1<CR>
 inoremap <S-A-h> <Esc>:tabmove -1<CR>
@@ -605,7 +605,7 @@ augroup Tumbler
    autocmd BufNewFile,BufReadPost,FileType * call timer_start(10, 'ScrewFtPlugin')
    " Screw ftplugin; this is how I want my formatting!
 
-   autocmd FileType gitcommit set t_Co=256
+   autocmd FileType gitcommit set t_Co=256 | let g:in_git_commit = 1
 augroup END
 augroup QuickComments
    au!
@@ -681,6 +681,9 @@ if filereadable($HOME.'/vimfiles/.vimpref')
    source $HOME/vimfiles/.vimpref
 endif
 " Loads additional, location specific, options should there be any
+
+let g:in_git_commit = 0
+
 "< End of Initializations
 
 "> Functions
