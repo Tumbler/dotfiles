@@ -93,7 +93,7 @@ endif
 "                   .optional " A list of directories that are in the project
 "                                 but are optional
 "                   .name     " The name and key of the project
-"                   .exclude  " A list of files to exclude from searches
+"                   .excludes " A list of files to exclude from searches
 "                and the absolute path to the root directory of the project as a
 "                  string
 "     NOTE: Left public on purpose. (Lets other plugins use projects)
