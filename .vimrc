@@ -170,6 +170,9 @@ if has("gui_running")
    set guioptions+=c
    " This allows vim to handle confirmations terminal style instead of in a
    " dialog box
+else
+   " Terminal options
+   set t_Co=256
 endif
 
 filetype indent on
@@ -605,7 +608,7 @@ augroup Tumbler
    autocmd BufNewFile,BufReadPost,FileType * call timer_start(10, 'ScrewFtPlugin')
    " Screw ftplugin; this is how I want my formatting!
 
-   autocmd FileType gitcommit set t_Co=256 | let g:in_git_commit = 1
+   autocmd FileType gitcommit let g:in_git_commit = 1
 augroup END
 augroup QuickComments
    au!
