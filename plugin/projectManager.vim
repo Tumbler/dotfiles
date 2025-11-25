@@ -1,10 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/14/2025 04:20 PM
+" Last Edited: 11/25/2025 01:11 PM
 let s:Version = 2.20
-
-" TODO: Remove Microchip from manager.
 
 if (exists("g:loaded_projectManager") && (g:loaded_projectManager >= s:Version))
    finish
@@ -114,7 +112,7 @@ function! ProjectManager_ReturnProject(input)
                let currentFile = expand('%:t')
                let inExcludeFile = 0
                " Make sure we're not in an exclude file
-               for exclude in copy(g:ProjectManager[key].exclude)
+               for exclude in copy(g:ProjectManager[key].excludes)
                   if (currentFile == fnamemodify(exclude, ':t'))
                      let inExcludeFile = 1
                   endif
@@ -149,7 +147,7 @@ function! ProjectManager_ReturnProject(input)
       endif
    endif
    " If everything else fails, try to match a relative project
-   let originalDir = getcwd()
+   let originalDir = s:GetCWD()
    if (isdirectory(a:input))
       exe "cd ".a:input
    endif
@@ -220,7 +218,7 @@ function! s:ReturnAbsoluteRoot(project, match)
       return project.dirs[0]
    elseif (a:project.type == "R")
       " Save for later
-      let originalDir = getcwd()
+      let originalDir = s:GetCWD()
 
       " Find Root Directory
       if (a:match == '.')
@@ -307,7 +305,7 @@ function! s:Project()
    let choice = ""
    let track = 0
    " Change active project to current directory
-   call ProjectManager_ReturnProject(getcwd())
+   call ProjectManager_ReturnProject(s:GetCWD())
    call s:PrintProject("@||", 0)
    while(track != -1)
       let choice = input("\n(1) Print all projects\n" .
@@ -470,22 +468,7 @@ function! s:ExecuteCommand(command, options)
             call s:EchoError(project . " already exists in project manager!")
             return 0
          endif
-         let dir = ""
-         let state = 1
-         while (dir != "q")
-            if (dir == 'e')
-               let state = !state
-            endif
-            if (state)
-               let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
-               echo "\n"
-               call s:AddDirectory(project, dir, "N")
-            else
-               let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
-               echo "\n"
-               call s:AddExclusion(project, dir, "N")
-            endif
-         endwhile
+         call s:AddDirectoryInput(project, "N")
          call s:PrintProject(project, 0)
       elseif len(a:options) == 1
          let project = a:options[0]
@@ -500,22 +483,7 @@ function! s:ExecuteCommand(command, options)
             call s:EchoError(project . " already exists in project manager!")
             return 0
          endif
-         let dir = ""
-         let state = 1
-         while (dir != "q")
-            if (dir == 'e')
-               let state = !state
-            endif
-            if (state)
-               let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
-               echo "\n"
-               call s:AddDirectory(project, dir, "N")
-            else
-               let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
-               echo "\n"
-               call s:AddExclusion(project, dir, "N")
-            endif
-         endwhile
+         call s:AddDirectoryInput(project, "N")
          call s:PrintProject(project, 0)
       elseif len(a:options) > 1
          let project = a:options[0]
@@ -532,7 +500,7 @@ function! s:ExecuteCommand(command, options)
             return 0
          endif
          for dir in a:options[1:]
-            call s:AddDirectory(project, dir, "N")
+            call s:AddDirectory(project, dir, "N", 0)
          endfor
       endif
 
@@ -552,27 +520,8 @@ function! s:ExecuteCommand(command, options)
             call s:EchoError(project . " already exists in project manager!")
             return 0
          endif
-         call s:AddDirectory(project, '.', "R")
-         let dir = ""
-         let state = 1
-         while (dir != "q")
-            if (dir == 'e')
-               let state = !state
-            endif
-            if (state)
-               let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
-               echo "\n"
-               if (dir != "q")
-                  call s:AddDirectory(project, dir, "R")
-               endif
-            else
-               let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
-               echo "\n"
-               if (dir != "q")
-                  call s:AddExclusion(project, dir, "R")
-               endif
-            endif
-         endwhile
+         call s:AddDirectory(project, '.', "R", 0)
+         call s:AddDirectoryInput(project, "R")
          call s:PrintProject(project, 0)
       elseif len(a:options) == 1
          let project = a:options[0]
@@ -588,27 +537,8 @@ function! s:ExecuteCommand(command, options)
             call s:EchoError(project . " already exists in project manager!")
             return 0
          endif
-         call s:AddDirectory(project, '.', "R")
-         let dir = ""
-         let state = 1
-         while (dir != "q")
-            if (dir == 'e')
-               let state = !state
-            endif
-            if (state)
-               let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
-               echo "\n"
-               if (dir != "q")
-                  call s:AddDirectory(project, dir, "R")
-               endif
-            else
-               let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
-               echo "\n"
-               if (dir != "q")
-                  call s:AddExclusion(project, dir, "R")
-               endif
-            endif
-         endwhile
+         call s:AddDirectory(project, '.', "R", 0)
+         call s:AddDirectoryInput(project, "R")
          call s:PrintProject(project, 0)
       elseif len(a:options) > 1
          let project = a:options[0]
@@ -624,9 +554,9 @@ function! s:ExecuteCommand(command, options)
             call s:EchoError(project . " already exists in project manager!")
             return 0
          endif
-         call s:AddDirectory(project, '.', "R")
+         call s:AddDirectory(project, '.', "R", 0)
          for dir in a:options[1:]
-            call s:AddDirectory(project, dir, "R")
+            call s:AddDirectory(project, dir, "R", 0)
          endfor
       endif
 
@@ -635,26 +565,7 @@ function! s:ExecuteCommand(command, options)
          let project = s:GetProject()
          if has_key(g:ProjectManager, project)
             let s:activeProject = project
-            let dir = ""
-            let state = 1
-            while (dir != "q")
-               if (dir == 'e')
-                  let state = !state
-               endif
-               if (state)
-                  let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
-                  echo "\n"
-                  if (dir != "q")
-                     call s:AddDirectory(project, dir, g:ProjectManager[project].type)
-                  endif
-               else
-                  let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
-                  echo "\n"
-                  if (dir != "q")
-                     call s:AddExclusion(project, dir, g:ProjectManager[project].type)
-                  endif
-               endif
-            endwhile
+            call s:AddDirectoryInput(project, g:ProjectManager[project].type)
          else
             call s:EchoError(project . " project does not exist! Did you mean new?\n\n")
             return 0
@@ -665,26 +576,7 @@ function! s:ExecuteCommand(command, options)
          if has_key(g:ProjectManager, project)
             let s:activeProject = project
             call s:ClearScreen()
-            let dir = ""
-            let state = 1
-            while (dir != "q")
-               if (dir == 'e')
-                  let state = !state
-               endif
-               if (state)
-                  let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion)\n", "", "dir")
-                  echo "\n"
-                  if (dir != "q")
-                     call s:AddDirectory(project, dir, g:ProjectManager[project].type)
-                  endif
-               else
-                  let dir = input("\nWhat file do you want to exclude? (q to quit, e to switch back to directories)\n", "", "file")
-                  echo "\n"
-                  if (dir != "q")
-                     call s:AddExclusion(project, dir, g:ProjectManager[project].type)
-                  endif
-               endif
-            endwhile
+            call s:AddDirectoryInput(project, g:ProjectManager[project].type)
          else
             call s:ClearScreen()
             call s:EchoError(project . " project does not exist! Did you mean new?")
@@ -695,7 +587,7 @@ function! s:ExecuteCommand(command, options)
          if has_key(g:ProjectManager, project)
             let s:activeProject = project
             for dir in a:options[1:]
-               call s:AddDirectory(project, dir, g:ProjectManager[project]["type"])
+               call s:AddDirectory(project, dir, g:ProjectManager[project]["type"], 0)
             endfor
          else
             call s:ClearScreen()
@@ -783,7 +675,7 @@ function! s:ExecuteCommand(command, options)
                if index(g:ProjectManager[project]["dirs"], safeDir)
                   call filter(g:ProjectManager[project]["dirs"], 'v:val !~ "' . safeDir . '"')
                else
-                  call filter(g:ProjectManager[project]["excludes"], 'v:val !~ "' . fnnamemodify(dir, ':p') . '"')
+                  call filter(g:ProjectManager[project]["excludes"], 'v:val !~ "' . fnamemodify(dir, ':p') . '"')
                endif
             endfor
             call s:ClearScreen()
@@ -1063,13 +955,40 @@ function! s:GetProject()
    return project
 endfunction
 
+function! s:AddDirectoryInput(project, rel)
+   let dir = ""
+   let state = 'n'
+   while (dir != "q")
+      if (dir == 'e')
+         let state = 'e'
+      elseif (dir == 'r')
+         let state = 'r'
+      elseif (dir == 'n')
+         let state = 'n'
+      endif
+      if (state == 'n')
+         let dir = input("\nWhat directory do you want to add? (q to quit, e to add an exclusion, r to add a recursive directory)\n", "", "dir")
+         echo "\n"
+         call s:AddDirectory(a:project, dir, a:rel, 0)
+      elseif (state == 'e')
+         let dir = input("\nWhat file do you want to exclude? (q to quit, n to switch back to directories)\n", "", "file")
+         echo "\n"
+         call s:AddExclusion(a:project, dir, a:rel)
+      elseif (state == 'r')
+         let dir = input("\nWhat recurseive directory do you want to add? (q to quit, e to add an exclusion, n to add a normal directory)\n", "", "dir")
+         echo "\n"
+         call s:AddDirectory(a:project, dir, a:rel, 1)
+      endif
+   endwhile
+endfunction
+
 " AddDirectory ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Adds dir to project. Properly handles "\"'s, pre-existence, and
 "          relative paths
 "     input   - project: [string] The key to the dictionary to add the dir to
 "               dir: [string] The dir to add to the project
 "     returns - [bool] True if add succeeded
-function! s:AddDirectory(project, dir, relative)
+function! s:AddDirectory(project, dir, relative, recursive)
    " Don't check if directory exists if the project is relative
    if (a:relative == "R" || isdirectory(a:dir))
       if (a:relative == "R")
@@ -1107,6 +1026,20 @@ function! s:AddDirectory(project, dir, relative)
       if !count(g:ProjectManager[a:project]["dirs"], expandedDir)
          "Make sure it doesn't already exist
          call add(g:ProjectManager[a:project]["dirs"], expandedDir)
+
+         " Add recursive
+         if (a:recursive > 0)
+            let glob = split(globpath(expandedDir, '**'), "\0")
+            for record in glob
+               let record .= '/'
+               if (isdirectory(record) && record != expandedDir)
+                  if !count(g:ProjectManager[a:project]["dirs"], record)
+                     call add(g:ProjectManager[a:project]["dirs"], record)
+                  endif
+               endif
+            endfor
+         endif
+
          echo "\n" expandedDir . " added!"
       else
          echo "\n"
@@ -1116,7 +1049,7 @@ function! s:AddDirectory(project, dir, relative)
          echohl NORMAL
       endif
       return 1
-   elseif (a:dir != 'q' && a:dir != 'e')
+   elseif (a:dir != 'q' && a:dir != 'n' && a:dir != 'r' && a:dir != 'e')
       echohl ERROR
       echo "\n"
       echo a:dir . " directory doesn't exist!\n"
@@ -1373,12 +1306,12 @@ function! s:ProjectCompletion(arg, line, pos)
    return returnString
 endfunction
 
-" ProjecFiletCompletion <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+" ProjectFileCompletion <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: This is a custom completion function that will complete file names in
 "          a project.
 "     input/returns - see :h command-completion-custom
 function! s:ProjectFileCompletion(arg, line, pos)
-   let origdir = getcwd()
+   let origdir = s:GetCWD()
    " Save for later
 
    let ReturnedProjectStruct = ProjectManager_ReturnProject(origdir)
@@ -1447,10 +1380,10 @@ function! s:ProjectVimGrep(searchWord, typeList, global)
    let g:projectManager_DirSearchActive = 1
    " If ale is installed we need to disable it, because it tries to lint
    " everything we search. It slows things down a TON and sometimes crashes.
-   let origdir = getcwd()
+   let origdir = s:GetCWD()
    " Save for later
 
-   let ReturnedProjectStruct = ProjectManager_ReturnProject(getcwd())
+   let ReturnedProjectStruct = ProjectManager_ReturnProject(s:GetCWD())
    let project = ReturnedProjectStruct[0]
    let projectRoot = ReturnedProjectStruct[1]
    let dirs = ProjectManager_ReturnProjectDirectories(project.name)
@@ -1501,7 +1434,7 @@ endfunction
 function! s:StartDirSearch()
    cclose
    call setqflist([])
-   echo getcwd()
+   echo s:GetCWD()
    let pattern = input(":DirectorySearch ", "", "tag")
    call s:DirSearch(pattern)
 endfunction
@@ -1569,7 +1502,7 @@ function! s:TraverseCtag(...)
    try
       " If it's part of a project then look in the "root" directory of the
       "   project for the tags file.
-      let ReturnedProjectStruct = ProjectManager_ReturnProject(getcwd())
+      let ReturnedProjectStruct = ProjectManager_ReturnProject(s:GetCWD())
       let project = ReturnedProjectStruct[0]
       let root = ReturnedProjectStruct[1]
       if (len(project) > 0)
@@ -1589,7 +1522,8 @@ function! s:TraverseCtag(...)
          cclose
          lclose
       endif
-      let l:windowNr = winnr("$")
+      let l:windowNr = s:GetNumVerticalSplits()
+      echom l:windowNr
       let tag = expand('<cword>')
       let tagFile = s:ReturnTagFile(tag)
       if (&columns >= (80 * (l:windowNr + 1)) && l:windowNr < s:maxSplits)
@@ -1643,7 +1577,7 @@ function! s:Tag(tag, ...)
    try
       " If it's part of a project then look in the "root" directory of the
       "   project for the tags file.
-      let ReturnedProjectStruct = ProjectManager_ReturnProject(getcwd())
+      let ReturnedProjectStruct = ProjectManager_ReturnProject(s:GetCWD())
       let project = ReturnedProjectStruct[0]
       let root = ReturnedProjectStruct[1]
       if (len(project) > 0)
@@ -1677,7 +1611,7 @@ function! s:Edit(file)
    if filereadable(a:file)
       exe 'edit '.a:file
    else
-      let origdir = getcwd()
+      let origdir = s:GetCWD()
       " Save for later
 
       let ReturnedProjectStruct = ProjectManager_ReturnProject(origdir)
@@ -1705,31 +1639,20 @@ endfunction
 " GenerateCTags <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Generates a tag file for your whole project. This function assumes
 "          that you have Ctags installed.
-"          (Also adds a Microchip directory if it exists.)
 "     input   - void
 "     returns - void
 function! s:GenerateCTags()
-   let currentwd = s:ExpandDir(getcwd(), 0)
+   let currentwd = s:ExpandDir(s:GetCWD(), 0)
    let dirs = ProjectManager_ReturnProjectDirectories(currentwd)
-   let microchipDirectoryExist = 0
    if len(dirs) == 0
       exe "silent!! ctags " . s:FormatVimGrepFiles(dirs, [])
    else
-      if isdirectory(s:ExpandDir("..\Microchip", 0))
-         let microchipDirectoryExist = 1
-      endif
       let excludes = s:FormatCtagExcludes(ProjectManager_ReturnProject(currentwd)[0])
       if (s:ExpandDir(dirs[0], 0) == currentwd)
          exe "silent!! ctags " . excludes .' '. s:FormatVimGrepFiles(dirs, [])
-         if (microchipDirectoryExist)
-            exe "silent!! ctags -aR ../Microchip/*"
-         endif
       else
          exe "cd " . s:ExpandDir(dirs[0], 0)
          exe "! ctags " . excludes .' '. s:FormatVimGrepFiles(dirs, [])
-         if (microchipDirectoryExist)
-            exe "silent!! ctags -aR ../Microchip/*"
-         endif
          exe "cd " . currentwd
       endif
    endif
@@ -1762,6 +1685,41 @@ function! s:EchoError(message)
    echo a:message
    echohl NORMAL
 endfunction
+
+" GetNumVerticalSplits ><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Returns the number of vertical splits on the current tab.
+"     returns - [int] Number of vertical splits
+function! s:GetNumVerticalSplits()
+   if (winnr("$") == 1)
+      return 1
+   endif
+
+   let startingWindow = winnr()
+   let vsplits = 0
+   wincmd w
+   while 1
+      if winwidth("$") < &columns
+         let vsplits += 1
+      endif
+
+      if startingWindow != winnr()
+         wincmd w
+      else
+         break
+      endif
+   endwhile
+
+   return max([1, vsplits])
+endfunction
+
+" GetCWD ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: getcwd() behaves slight different on different OS's. This
+"          standardizes it.
+"     returns - [string] The full working directory with a trailing "/"
+function! s:GetCWD()
+   return substitute(getcwd(), "/*$", "/", "")
+endfun
+
 
 " SID <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Gets the SID for the current script.
