@@ -2,7 +2,7 @@
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
 " Last Edited: 11/25/2025 01:11 PM
-let s:Version = 2.20
+let s:Version = 2.21
 
 if (exists("g:loaded_projectManager") && (g:loaded_projectManager >= s:Version))
    finish
