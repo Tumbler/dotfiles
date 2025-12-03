@@ -620,18 +620,23 @@ augroup QuickComments
                          " Generalized quick comments (C-style)
 
    " Filetype dependent stuff
+
    " Perl
    autocmd FileType perl     nmap<buffer>  <A-c>   I#<Esc>$<A-j>
    autocmd FileType perl     imap<buffer>  <A-c>   <Esc>I#<Esc>$<A-j>
    autocmd FileType perl     nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType perl     imap<buffer>  <A-x>   <Esc>^x$<A-j>
-                             " Perl style quick comments
-
+   " Python
    autocmd FileType python   nmap<buffer>  <A-c>   I#<Esc>$<A-j>
    autocmd FileType python   imap<buffer>  <A-c>   <Esc>I#<Esc>$<A-j>
    autocmd FileType python   nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType python   imap<buffer>  <A-x>   <Esc>^x$<A-j>
-                             " Python style quick comments
+   " env
+   autocmd FileType env      nmap<buffer>  <A-c>   I#<Esc>$<A-j>
+   autocmd FileType env      imap<buffer>  <A-c>   <Esc>I#<Esc>$<A-j>
+   autocmd FileType env      nmap<buffer>  <A-x>   ^x$<A-j>
+   autocmd FileType env      imap<buffer>  <A-x>   <Esc>^x$<A-j>
+                             " Script stle quick comments
    " HTML
    autocmd FileType html     nmap<buffer>  <A-c>   A--><Esc>I<!--<Esc>$<A-j>
    autocmd FileType html     imap<buffer>  <A-c>   <Esc>A--><Esc>I<!--<Esc>$<A-j>
@@ -650,8 +655,7 @@ augroup QuickComments
    autocmd FileType dosbatch nmap<buffer> <A-x>    ^2x$<A-j>
    autocmd FileType dosbatch imap<buffer> <A-x>    <Esc>^2x$<A-j>
                              " Batch style quick comments (May God have mercy on your soul)
-
-   " lua
+   " Lua
    autocmd FileType lua      nmap<buffer> <A-c>    I--<Esc>$<A-j>
    autocmd FileType lua      imap<buffer> <A-c>    <Esc>I--<Esc>$<A-j>
    autocmd FileType lua      nmap<buffer> <A-x>    ^2x$<A-j>
@@ -1257,6 +1261,7 @@ function! s:SetMacAltMappings()
    let maps .= execute("verbose imap")
    let maps .= execute("verbose cmap")
    let maps .= execute("verbose tmap")
+   let commentMaps = execute("autocmd QuickComments")
 
    " Archive map arguments for later use (because :map command doesn't tell us)
    let arguments = {}
@@ -1289,6 +1294,45 @@ function! s:SetMacAltMappings()
       endif
 
       let prevLine = line
+   endfor
+
+   " Read all Quick Comment mappings and remap alt mappings
+   augroup QuickComments
+      au!
+   augroup END
+   let event = ''
+   let fileType = ''
+   for line in split(commentMaps, "\n")
+      if line =~ 'QuickComments'
+         let event = split(line)[1]
+         continue
+      endif
+
+      let line = substitute(line, '<M-\|<A-', '<D-', 'g')
+
+      let mode = ''
+      let left = ''
+      let right = ''
+      let portion = SplitInTwo(line)
+      if (portion[1] =~ '^.map<buff')
+         let fileType = portion[0]
+         let portion = SplitInTwo(portion[1])
+      endif
+
+      if (portion[0] =~ '^.map<buff')
+         let mode = portion[0]
+         let portion = SplitInTwo(portion[1])
+      else
+         continue
+      endif
+
+      let left = portion[0]
+      let right = portion[1]
+      if (event != '' && fileType != '')
+         execute('augroup QuickComments')
+         execute('autocmd '. event .' '. fileType .' '. mode .' '. left .' '. right)
+         execute('augroup END')
+      endif
    endfor
 
 endfunction
@@ -1376,6 +1420,43 @@ function s:BeginOfLine()
    else
       call search('\(^\s\+\)\@<=\S\|^', 'b', line('.'))
    endif
+endfunction
+
+" SplitInTwo ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Splits a string into two strings on a pattern
+"     input   - str: [string] The input string
+"               pat: [pattern] The pattren to split on
+"     returns - 
+function! SplitInTwo(str, ...)
+   " Find index of first match of the pattern
+   let pat = '\s\+'
+   if (len(a:000) > 0)
+      let pat = a:1
+   endif
+
+   let l:idx = match(a:str, pat)
+
+   let copy = a:str
+
+   " Remove the first match to avoid empty first
+   if (l:idx == 0)
+      let copy = substitute(copy, pat, '', '')
+      let l:idx = match(copy, pat)
+   endif
+
+   " If pattern isn't found, return the whole string and an empty string
+   if l:idx < 0
+      return ["", a:str]
+   elseif l:idx == 0
+      sub
+   endif
+
+   " Compute the end of the matched portion
+   let l:matchlen = strlen(matchstr(copy, pat))
+   let l:first = strpart(copy, 0, l:idx)
+   let l:rest = strpart(copy, l:idx + l:matchlen)
+
+   return [l:first, l:rest]
 endfunction
 
 "< End of Functions
