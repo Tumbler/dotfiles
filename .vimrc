@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 11/21/2025 10:57 AM
+" Last Edited: 12/03/2025 08:58 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -269,7 +269,7 @@ cnoremap <expr> <Down> getcmdtype() ==# '@' ? InputHistory(1): '<Down>'
 cnoremap <expr> <CR>   getcmdtype() ==# '@' ? InputHistory(2): '<C-]><CR>'
 " When inside an Input() use the up and down arrows for command line recall
 
-noremap <silent> H :call  search('\(^\s\+\)\@<=\S\\|^', 'b', line('.'))<CR>
+noremap <silent> H :call <SID>BeginOfLine()<CR>
 " Go to beginning of text (like '^') or beginning of line, whichever comes first
 noremap L $
 " Go to end of line
@@ -650,6 +650,13 @@ augroup QuickComments
    autocmd FileType dosbatch nmap<buffer> <A-x>    ^2x$<A-j>
    autocmd FileType dosbatch imap<buffer> <A-x>    <Esc>^2x$<A-j>
                              " Batch style quick comments (May God have mercy on your soul)
+
+   " lua
+   autocmd FileType lua      nmap<buffer> <A-c>    I--<Esc>$<A-j>
+   autocmd FileType lua      imap<buffer> <A-c>    <Esc>I--<Esc>$<A-j>
+   autocmd FileType lua      nmap<buffer> <A-x>    ^2x$<A-j>
+   autocmd FileType lua      imap<buffer> <A-x>    <Esc>^2x$<A-j>
+                             " Lua style quick comments
 
    " And of course we can't forget Vim files! :D
    autocmd FileType vim      nmap<buffer>  <A-c>   I"<Esc>$<A-j>
@@ -1359,6 +1366,15 @@ function s:SmartQuit()
       cclose
       lclose
       pclose
+   endif
+endfunction
+
+function s:BeginOfLine()
+   " If the line is too long the search becomes unwieldy
+   if col('$') > 300
+      normal 0
+   else
+      call search('\(^\s\+\)\@<=\S\|^', 'b', line('.'))
    endif
 endfunction
 
