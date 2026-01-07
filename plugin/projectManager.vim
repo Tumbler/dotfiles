@@ -1,8 +1,8 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 11/25/2025 01:11 PM
-let s:Version = 2.21
+" Last Edited: 01/07/2026 09:21 AM
+let s:Version = 2.22
 
 if (exists("g:loaded_projectManager") && (g:loaded_projectManager >= s:Version))
    finish
@@ -10,7 +10,7 @@ endif
 let g:loaded_projectManager = s:Version
 let projectManager_DirSearchActive = 0
 
-let s:ProjectManagerCommands = ["activate", "add", "blarg", "delete", "exclude", "help", "new", "newrel", "optional", "main", "quit", "remove", "rename", "select", "view"]
+let s:ProjectManagerCommands = ["activate", "add", "blarg", "delete", "exclude", "exit", "help", "ls", "new", "newrel", "optional", "main", "quit", "remove", "rename", "select", "view"]
    " A list of commands that the ExecuteCommand() function can handle
 let s:projectFile = $HOME.'/vimfiles/.projects'
    " The file that stores the project information across multiple sessions
@@ -52,6 +52,7 @@ cnoreabbrev <expr> tag (getcmdtype() == ':' && getcmdline() =~ '^tag$')? 'Tag' :
 command! -nargs=1 -complete=custom,<SID>ProjectFileCompletion Edit :call <SID>Edit('<args>')
 " Just does an :edit, but makes sure to check the whole project
 cnoreabbrev <expr> e (getcmdtype() == ':' && getcmdline() =~ '^e$')? 'Edit' : 'e'
+cnoreabbrev <expr> E (getcmdtype() == ':' && getcmdline() =~ '^e$')? 'Edit' : 'e'
 cnoreabbrev <expr> edit (getcmdtype() == ':' && getcmdline() =~ '^edit$')? 'Edit' : 'edit'
 " Makes regular edit calls use our version of Edit.
 
@@ -419,7 +420,7 @@ function! s:ExecuteCommand(command, options)
    " time, and the resulting code is incredibly unreadable. Therefore, for the
    " sake of readability (and my sanity) I've opted to leave it this way.
    let command = tolower(a:command)
-   if     (command == "quit") " ------------ quit
+   if     (command == "quit" || command == "exit") " ------------ quit
       call s:SaveProject()
       return -1
 
@@ -449,7 +450,9 @@ function! s:ExecuteCommand(command, options)
       echo "    Removes a project or directory from a project"
       echo "rename   [project] [new_name]"
       echo "    Renames a project"
-      echo "quit"
+      echo "view|ls  [project]"
+      echo "    Prints a project"
+      echo "quit|exit"
       echo "    Exit project manager"
       echo "\n"
       return 0
@@ -475,6 +478,7 @@ function! s:ExecuteCommand(command, options)
          if !has_key(g:ProjectManager, project)
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "N"
+            let g:ProjectManager[project]["name"] = project
             let g:ProjectManager[project]["dirs"] = []
             let g:ProjectManager[project]["optional"] = []
             let g:ProjectManager[project]["excludes"] = []
@@ -529,6 +533,7 @@ function! s:ExecuteCommand(command, options)
             let project = substitute(project, '/\?$', '/', '')
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "R"
+            let g:ProjectManager[project]["name"] = project
             let g:ProjectManager[project]["dirs"] = []
             let g:ProjectManager[project]["optional"] = []
             let g:ProjectManager[project]["excludes"] = []
@@ -546,6 +551,7 @@ function! s:ExecuteCommand(command, options)
             let project = substitute(project, '/\?$', '/', '')
             let g:ProjectManager[project] = {}
             let g:ProjectManager[project]["type"] = "R"
+            let g:ProjectManager[project]["name"] = project
             let g:ProjectManager[project]["dirs"] = []
             let g:ProjectManager[project]["optional"] = []
             let g:ProjectManager[project]["excludes"] = []
@@ -668,7 +674,7 @@ function! s:ExecuteCommand(command, options)
             let s:activeProject = project
             for dir in a:options[1:]
                if (g:ProjectManager[project].type == "N")
-                  let safeDir = s:ExpandDir(dir, 0)
+                  let safeDir = s:ExpandDir(dir, 1)
                else
                   let safeDir = dir
                endif
@@ -685,7 +691,7 @@ function! s:ExecuteCommand(command, options)
          endif
       endif
 
-   elseif (command == "view") " ------------ view
+   elseif (command == "view" || command == "ls") " ------------ view
       if len(a:options) == 0
          call s:PrintProject("@||", 0)
       elseif len(a:options) > 0
@@ -1020,7 +1026,7 @@ function! s:AddDirectory(project, dir, relative, recursive)
             endif
          endif
       else
-         let expandedDir = s:ExpandDir(a:dir, 0)
+         let expandedDir = s:ExpandDir(a:dir, 1)
       endif
 
       if !count(g:ProjectManager[a:project]["dirs"], expandedDir)
@@ -1066,8 +1072,8 @@ endfunction
 "               relative: [char] R if relative, N if normal project.
 "     returns - 1 on success, -1 on failure, 0 on other input received
 function! s:AddExclusion(project, file, relative)
-   " Don't check if directory exists if the project is relative
-   if (a:relative == "R" || isdirectory(a:dir))
+   " Don't check if file exists if the project is relative
+   if (a:relative == "R" || filereadable(a:file))
       if (a:relative == "R")
          let expandedDir = a:file
       else
@@ -1127,22 +1133,52 @@ function! s:PrintProject(inputProject, option)
          echon "  < < < < < < < < < <"
          echohl NONE
       endif
+      let dirNum = 0
       if a:option != 2
          echohl projectManagerDirs
          for dir in copy(g:ProjectManager[project]["dirs"])
+            if (a:inputProject == "@||" && dirNum >= 10)
+               echohl projectManagerArrows
+               echo "        ...\n"
+               echohl projectManagerDirs
+               break
+            endif
             echo "        " . (a:option == 1? "(" . counter . ")" : "") . dir ."\n"
             let counter += 1
+            let dirNum += 1
          endfor
+         if (a:inputProject == "@||" && dirNum >= 10)
+            echohl NONE
+            continue
+         endif
          echohl projectManagerOptional
          for file in copy(g:ProjectManager[project]["optional"])
+            if (a:inputProject == "@||" && dirNum >= 10)
+               echohl projectManagerArrows
+               echo "        ...\n"
+               echohl projectManagerDirs
+               break
+            endif
             echo " (optl) " . (and(a:option, 1) == 1? "(" . counter . ")" : "") . file ."\n"
             let counter += 1
+            let dirNum += 1
          endfor
+         if (a:inputProject == "@||" && dirNum >= 10)
+            echohl NONE
+            continue
+         endif
          if (a:option != 3)
             echohl projectManagerExcludes
             for file in copy(g:ProjectManager[project]["excludes"])
+               if (a:inputProject == "@||" && dirNum >= 10)
+                  echohl projectManagerArrows
+                  echo "        ...\n"
+                  echohl projectManagerDirs
+                  break
+               endif
                echo " (excl) " . (and(a:option, 1) == 1? "(" . counter . ")" : "") . file ."\n"
                let counter += 1
+               let dirNum += 1
             endfor
          endif
          echohl NORMAL
@@ -1239,11 +1275,13 @@ function! s:ExpandDir(dir, trailingSlashFlag)
    let newDir = a:dir
    if (a:trailingSlashFlag)
       let newDir = fnamemodify(newDir, ":p")
+      let newDir = substitute(newDir, "\\", "/", "g")
+      let newDir = substitute(newDir, "/*$", "/", "")
    else
       let newDir = fnamemodify(newDir, ":p:h")
+      let newDir = substitute(newDir, "\\", "/", "g")
+      let newDir = substitute(newDir, "/*$", "", "")
    endif
-   let newDir = substitute(newDir, "\\", "/", "g")
-   let newDir = substitute(newDir, "/*$", "/", "")
 
    return newDir
 endfunction
@@ -1283,7 +1321,7 @@ function! s:CommandProjectHybridCompletion(arg, line, pos)
          endif
       else
          " These commands choose dirs that aren't in the project already
-         let returnStringList = split(globpath(s:ExpandDir(argList[2], 0), '*'), "\0")
+         let returnStringList = split(globpath(s:ExpandDir(argList[2], 1), '*'), "\0")
          for line in returnStringList
             if isdirectory(line)
                let returnString .= argList[0] ." ". argList[1] ." ". line ."\n"
@@ -1452,6 +1490,7 @@ function! s:DirSearch(input)
          let extensions = ""
          let recurse = 0
          let global = 0
+         let directoryOverride = 0
          if     (a:input =~# '\(\\\)\@<!\\r')
             " Found "\r" in pattern, recurse this directory
             let recurse = 1
@@ -1474,8 +1513,15 @@ function! s:DirSearch(input)
             let global = 1
             let search = substitute(search, '\(\\\)\@<!\\g.*', "", "g")
          endif
+         if (search =~# '\(\\\)\@<!\\d')
+            " Found "\d" in pattern, only search in the directory
+            let directoryOverride = 1
+            let search = substitute(search, '\(\\\)\@<!\\d.*', "", "g")
+         endif
          if (recurse)
             exec "lvimgrep /" . search . "/j". (global? "g ":" ") . s:FormatVimGrepFiles(["./**"], extensions)
+         elseif (directoryOverride)
+            exec "lvimgrep /" . search . "/j". (global? "g ":" ") . s:FormatVimGrepFiles(["./"], extensions)
          else
             call s:ProjectVimGrep(search, extensions, global)
          endif
@@ -1642,7 +1688,7 @@ endfunction
 "     input   - void
 "     returns - void
 function! s:GenerateCTags()
-   let currentwd = s:ExpandDir(s:GetCWD(), 0)
+   let currentwd = s:ExpandDir(getcwd(), 0)
    let dirs = ProjectManager_ReturnProjectDirectories(currentwd)
    if len(dirs) == 0
       exe "silent!! ctags " . s:FormatVimGrepFiles(dirs, [])
@@ -1713,7 +1759,7 @@ function! s:GetNumVerticalSplits()
 endfunction
 
 " GetCWD ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
-"   brief: getcwd() behaves slight different on different OS's. This
+"   brief: getcwd() behaves slightly different on different OS's. This
 "          standardizes it.
 "     returns - [string] The full working directory with a trailing "/"
 function! s:GetCWD()
