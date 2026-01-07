@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 12/03/2025 08:58 AM
+" Last Edited: 01/07/2026 02:46 PM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -25,7 +25,7 @@ set ruler
 set laststatus=2
 " Permanent status line (format is set in function below)
 set showcmd
-if v:version >= 900
+if v:version >= 901
    set showcmdloc=statusline
 endif
 " During multipart commands, show the keys you have typed so far in the status line
@@ -64,8 +64,9 @@ set tags=./tags;
 set winaltkeys=no
 " Allows us to use the menu shortcuts for ourselves, YAY! (i.e. Alt+h)
 set autochdir
+set autoshelldir
 " Automatically sets the pwd to current file as you browse
-set diffopt=filler,vertical,context:1000000
+set diffopt=filler,vertical,context:1000000,iwhite
 " Automatically opens diffs with filler lines for sync, vertically
 "   (side-by-side), and with all folds open
 set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym,Nmakefile,*.DS_Store
@@ -414,7 +415,7 @@ if version >= 810
    tnoremap <A-j> <Down>
    tnoremap <A-k> <Up>
 endif
-nnoremap <expr> <S-A-w> &diffopt=~'iwhite'? ":set diffopt-=iwhite<CR>" : ":set diffopt+=iwhite<CR>"
+nnoremap <expr> <A-W> &diffopt=~'iwhite'? ":set diffopt-=iwhite<CR>" : ":set diffopt+=iwhite<CR>"
 " Toggles whitespace diffing.
 nnoremap <expr> <A-u> &diff? "]c" : "<C-d>"
 nnoremap <expr> <A-i> &diff? "[c" : "<C-u>"
@@ -1361,7 +1362,7 @@ function! s:SetStatusLine()
    if exists('g:loaded_fugitive')
       let formula .= '%#Identifier#%{FugitiveStatusline()}%#StatusLine#%='
    endif
-   if v:version >= 900
+   if v:version >= 901
       let formula .= '%#statusLineCmd#%-5S%#StatusLine#%='
    endif
    let formula .= '%-14.(%l,%c%V%)\ %P'
