@@ -1,7 +1,7 @@
 " @Tracked
 " Vim Poject Manager plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 01/07/2026 09:21 AM
+" Last Edited: 07/08/2026 02:26 PM
 let s:Version = 2.22
 
 if (exists("g:loaded_projectManager") && (g:loaded_projectManager >= s:Version))
@@ -1763,6 +1763,16 @@ endfunction
 "          standardizes it.
 "     returns - [string] The full working directory with a trailing "/"
 function! s:GetCWD()
+   if (&ft == 'netrw')
+      let path = expand('%:p')
+      let cursor = expand("<cfile>")
+      if (isdirectory(path.cursor))
+         return substitute(path.cursor, "/*$", "/", "")
+      else
+         return substitute(path, "/*$", "/", "")
+      endif
+   endif
+
    return substitute(getcwd(), "/*$", "/", "")
 endfun
 
