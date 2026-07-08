@@ -1,8 +1,8 @@
 " @Tracked
 " Netrw Extension Plugin
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 03/29/2019 02:57 PM
-let s:Version = 1.64
+" Last Edited: 07/08/2026 04:42 PM
+let s:Version = 1.65
 
 " Anti-inclusion guard and version
 if (exists("g:loaded_netwExtension") && (g:loaded_netwExtension >= s:Version))
@@ -38,6 +38,7 @@ augroup NetrwExtension
    autocmd VimEnter     * let g:netrw_first = 1
    autocmd VimEnter     * call <SID>CheckForPathMem()
    autocmd filetype netrw call <SID>Remap_netrw()
+   autocmd BufEnter * if (&ft ==# 'netrw') | call timer_start(10, '<SID>RememberWrapper') | endif
 augroup END
 endif
 
@@ -64,52 +65,58 @@ function! s:SmartExplore(origin)
       exe "cd " . expand("%:p:h")
    endif
    let g:netrw_first = 0
-   "  If empty document then don't bother
-   if (line('$') == 1 && getline(1) == '')
-      if !(s:User_autoread)
-         set autoread
-         Explore
-         set noautoread
+   try
+      "  If empty document then don't bother
+      if (line('$') == 1 && getline(1) == '')
+         if !(s:User_autoread)
+            set autoread
+            Explore
+            set noautoread
+         else
+            Explore
+         endif
+         call s:RememberLocation()
+         if (&scrolloff =~# '0')
+            normal zz
+         endif
+         normal C
+         " Sets the current editing window (Makes netrw open file in same window)
       else
-         Explore
+         if (a:origin == 'netrw')
+            let l:currentFilename = substitute(fnamemodify(b:netrw_curdir, ':t'), '/\=$', '/', '')
+         else
+            let l:currentFilename = @%
+         endif
+         call s:SyncDirs()
+         if (a:origin == 'netrw')
+            if !(s:User_autoread)
+               set autoread
+               call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
+               set noautoread
+            else
+               call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
+            endif
+         else
+            if !(s:User_autoread)
+               set autoread
+               Explore
+               set noautoread
+            else
+               Explore
+            endif
+         endif
+         call search('^' . s:EscapeRegex(l:currentFilename) . '\*\=$')
+         call s:AddToPathList(l:currentFilename)
+         if (&scrolloff =~# '0')
+            normal zz
+         endif
+         normal C
       endif
+   " If the dir we're in no longer exsists, find something that does.
+   catch /^Vim\%((\S\+)\)\=:E344:/
+      exe "Explore ". g:netrw_startingDir
       call s:RememberLocation()
-      if (&scrolloff =~# '0')
-         normal zz
-      endif
-      normal C
-      " Sets the current editing window (Makes netrw open file in same window)
-   else
-      if (a:origin == 'netrw')
-         let l:currentFilename = substitute(fnamemodify(b:netrw_curdir, ':t'), '/\=$', '/', '')
-      else
-         let l:currentFilename = @%
-      endif
-      call s:SyncDirs()
-      if (a:origin == 'netrw')
-         if !(s:User_autoread)
-            set autoread
-            call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
-            set noautoread
-         else
-            call netrw#LocalBrowseCheck( substitute(fnamemodify(b:netrw_curdir, ':p:h:h'), '/\=$', '/', ''))
-         endif
-      else
-         if !(s:User_autoread)
-            set autoread
-            Explore
-            set noautoread
-         else
-            Explore
-         endif
-      endif
-      call search('^' . s:EscapeRegex(l:currentFilename) . '\*\=$')
-      call s:AddToPathList(l:currentFilename)
-      if (&scrolloff =~# '0')
-         normal zz
-      endif
-      normal C
-   endif
+   endtry
    if exists('g:loaded_cvsnetrwIntegration')
       call UpdateCVSHilighting()
    endif
@@ -209,6 +216,10 @@ function! s:RememberLocation()
    endfor
 endfunction
 
+function! s:RememberWrapper(timer)
+   call s:RememberLocation()
+endfunction
+
 "  CheckForPathMem ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Initialize file and variables for path memory.
 function! s:CheckForPathMem()
@@ -232,8 +243,9 @@ function! s:Remap_netrw()
       exe "nnoremap <buffer> dd   :call dirDiff#DirDiff()<CR>"
       exe "nnoremap <buffer> dld  :call dirDiff#DirDiff(1)<CR>"
    endif
-   exe "nnoremap <buffer> /    :call <SID>DirFind()<CR>"
-   exe "nmap     <buffer> n    /<UP><CR>"
+   exe "nnoremap <buffer> /     :call <SID>DirFind()<CR>"
+   exe "nmap     <buffer> n     /<UP><CR>"
+   exe "nmap     <buffer> <C-l> <C-W>l"
 endfunction
 
 "  DirFind ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
@@ -293,7 +305,7 @@ endfunction
 
 " The MIT License (MIT)
 "
-" Copyright © 2018 Warren Terrall
+" Copyright Â© 2018 Warren Terrall
 "
 " Permission is hereby granted, free of charge, to any person obtaining a copy
 " of this software and associated documentation files (the "Software"), to
