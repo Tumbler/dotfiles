@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 10/21/2026 09:53 AM
+" Last Edited: 10/23/2026 09:08 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -69,7 +69,7 @@ set autoshelldir
 set diffopt=filler,vertical,context:1000000,iwhite
 " Automatically opens diffs with filler lines for sync, vertically
 "   (side-by-side), and with all folds open
-set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym,Nmakefile,*.DS_Store,_test.go
+set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym,Nmakefile,*.DS_Store,*_test.go
 " vimgrep ignores object files
 set wildmenu
 " Tab completing in command-line gives visual menu
@@ -416,7 +416,7 @@ nnoremap <A-j>   :call ShiftScreen("j")<CR>
 inoremap <A-j>   <C-o>:call ShiftScreen("j")<CR>
 vnoremap <A-j>   <C-e>j
 nnoremap <A-k>   :call ShiftScreen("k")<CR>
-"inoremap <A-k>   <C-o>:call ShiftScreen("k")<CR>
+inoremap <A-k>   <C-o>:call ShiftScreen("k")<CR>
 vnoremap <A-k>   <C-y>k
 " Move cursor and shift window at the same time (I use this everyday)
 cnoremap <A-k> <Up>
@@ -433,7 +433,7 @@ vnoremap <A-u> "<C-d>"
 vnoremap <A-i> "<C-u>"
 " move half a page down and up respectively
 "  or (when in a diff) move to next/previous difference
-nnoremap <a-n>   .n
+nnoremap <A-n>   .n
 inoremap <A-n>   <Esc>.n
 " Micro Macros :P
 nnoremap <silent><A-p> :setlocal spell! spelllang=en_us <BAR> :let g:spellSuggestionCount = 1<CR>
@@ -584,8 +584,9 @@ nnoremap Q <C-q>
 cnoremap %% %:p:h:t/%
 " Creates a generalized previous directory as well as file on the command line.
 
-" TODO make better
-vnoremap <D-c> :call execute("normal I". b:lineComment)<CR>
+vnoremap <A-c> :call execute("normal I". b:lineComment)<CR>
+vnoremap <A-x> :call execute("normal ^". strchars(b:lineComment) ."x")<CR>
+" Comment/uncomment selection block
 
 "< End of mappings
 
@@ -629,7 +630,6 @@ augroup Tumbler
 
    autocmd FileType gitcommit let g:in_git_commit = 1
 
-   autocmd BufReadPre  * let b:lineComment = "//"
 augroup END
 augroup QuickComments
    au!
@@ -639,6 +639,7 @@ augroup QuickComments
    autocmd BufReadPre  * nmap<buffer>  <A-x>   ^2x$<A-j>
    autocmd BufReadPre  * imap<buffer>  <A-x>   <Esc>^2x$<A-j>
                          " Generalized quick comments (C-style)
+   autocmd BufReadPre  * let b:lineComment = "//"
 
    " Filetype dependent stuff
 
@@ -663,6 +664,8 @@ augroup QuickComments
    autocmd FileType sh       nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType sh       imap<buffer>  <A-x>   <Esc>^x$<A-j>
                              " Script stle quick comments
+   autocmd FileType perl,python,env,sh let b:lineComment = "#"
+
    " HTML
    autocmd FileType html     nmap<buffer>  <A-c>   A--><Esc>I<!--<Esc>$<A-j>
    autocmd FileType html     imap<buffer>  <A-c>   <Esc>A--><Esc>I<!--<Esc>$<A-j>
@@ -675,18 +678,23 @@ augroup QuickComments
    autocmd FileType asm      nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType asm      imap<buffer>  <A-x>   <Esc>^x$<A-j>
                              " Assembly style quick comments
+   autocmd FileType asm      let b:lineComment = ";"
+
    " Batch
    autocmd FileType dosbatch nmap<buffer> <A-c>    I::<Esc>$<A-j>
    autocmd FileType dosbatch imap<buffer> <A-c>    <Esc>I::<Esc>$<A-j>
    autocmd FileType dosbatch nmap<buffer> <A-x>    ^2x$<A-j>
    autocmd FileType dosbatch imap<buffer> <A-x>    <Esc>^2x$<A-j>
                              " Batch style quick comments (May God have mercy on your soul)
+   autocmd FileType dosbatch let b:lineComment = "::"
+
    " Lua
    autocmd FileType lua      nmap<buffer> <A-c>    I--<Esc>$<A-j>
    autocmd FileType lua      imap<buffer> <A-c>    <Esc>I--<Esc>$<A-j>
    autocmd FileType lua      nmap<buffer> <A-x>    ^2x$<A-j>
    autocmd FileType lua      imap<buffer> <A-x>    <Esc>^2x$<A-j>
                              " Lua style quick comments
+   autocmd FileType dosbatch let b:lineComment = "--"
 
    " And of course we can't forget Vim files! :D
    autocmd FileType vim      nmap<buffer>  <A-c>   I"<Esc>$<A-j>
@@ -694,6 +702,7 @@ augroup QuickComments
    autocmd FileType vim      nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType vim      imap<buffer>  <A-x>   <Esc>^x$<A-j>
                              " Vim style quick comments
+   autocmd FileType vim      let b:lineComment = "\""
 
 augroup END
 endif
@@ -1270,8 +1279,7 @@ endfunction
 
 " SetMacAltMappings <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Rekeys all alt mappings as command mappings. Only mappings from vimrc
-"          are considered. NOTE: Currently only does n, i, and c maps. You'll
-"          need to edit if you add v or o maps.
+"          are considered.
 "          Random: Use:
 "                      'defaults write org.vim.MacVim NSUserKeyEquivalents -dict-add "Quit MacVim" nil'
 "                      'defaults write org.vim.MacVim NSUserKeyEquivalents -dict-add "Settings..." nil'
@@ -1289,7 +1297,6 @@ function! s:SetMacAltMappings()
    let maps .= execute("verbose tmap")
    let maps .= execute("verbose vmap")
    let commentMaps = execute("autocmd QuickComments")
-   let new = substitute(commentMaps, "\r", "\n", "g")
 
    " Archive map arguments for later use (because :map command doesn't tell us)
    let arguments = {}
@@ -1338,28 +1345,23 @@ function! s:SetMacAltMappings()
 
       let line = substitute(line, '<M-\|<A-', '<D-', 'g')
 
-      let mode = ''
-      let left = ''
-      let right = ''
       let portion = SplitInTwo(line)
-      if (portion[1] =~ '^.map<buff')
-         let fileType = portion[0]
-         let portion = SplitInTwo(portion[1])
-      endif
-
-      if (portion[0] =~ '^.map<buff')
-         let mode = portion[0]
-         let portion = SplitInTwo(portion[1])
-      else
-         " TODO maybe make this work for more general commands
+      let command = ''
+      let start = match(line, '\S')
+      if (start == 0) 
          continue
       endif
 
-      let left = portion[0]
-      let right = portion[1]
-      if (event != '' && fileType != '')
+      if (start < 14)
+         let fileType = portion[0]
+         let command = portion[1]
+      else
+         let command = portion[0] .' '. portion[1]
+      endif
+
+      if (event != '' && fileType != '' && command != '')
          execute('augroup QuickComments')
-         execute('autocmd '. event .' '. fileType .' '. mode .' '. left .' '. right)
+         execute('autocmd '. event .' '. fileType .' '. command)
          execute('augroup END')
       endif
    endfor
@@ -1457,7 +1459,7 @@ endfunction
 " SplitInTwo ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Splits a string into two strings on a pattern
 "     input   - str: [string] The input string
-"               pat: [pattern] The pattern to split on
+"               pat: [pattern] The pattern to split on (defaults to whitespace)
 "     returns - [[2]string] The string split up into two parts
 function! SplitInTwo(str, ...)
    " Find index of first match of the pattern
