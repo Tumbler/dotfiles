@@ -1,6 +1,6 @@
 " @Tracked
 " Author: Tumbler Terrall [TumblerTerrall@gmail.com]
-" Last Edited: 01/07/2026 02:46 PM
+" Last Edited: 10/23/2026 09:08 AM
 
 " TODO: Can have errors when doing ex commands on directories if the directory name contains a "%"
 " TODO: Check if $HOME/.vim works just as well on Windows as $HOME/vimfiles
@@ -69,7 +69,7 @@ set autoshelldir
 set diffopt=filler,vertical,context:1000000,iwhite
 " Automatically opens diffs with filler lines for sync, vertically
 "   (side-by-side), and with all folds open
-set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym,Nmakefile,*.DS_Store
+set wildignore+=*.o,*.obj,*.bak,*.exe,*.aux,*.dvi,*.info,*.d,*.hex,*.map,*.lib,*.swp,*.elf,*.bin,*.out,*.zip,tags,*.lst,*.pp,*.dll,*.lst,*.rlf,*.sdb,*cof,*.dep,*.hxl,*.mcs,*.sym,Nmakefile,*.DS_Store,*_test.go
 " vimgrep ignores object files
 set wildmenu
 " Tab completing in command-line gives visual menu
@@ -113,6 +113,9 @@ endif
 
 set omnifunc=syntaxcomplete#Complete
 " Attempt to intelligently fill the omnicomplete by filetype
+
+" TODO needs work
+"set completefunc=MyCompleteFunc
 
 set formatoptions=jrql2
 " Remove extra comment headers when [J]oining
@@ -217,6 +220,11 @@ cnoreabbrev qh tabdo if (!buflisted(bufnr('%')) && &modifiable == 0) <BAR> tabcl
 cnoreabbrev <expr> cw (getcmdtype() == ':' && getcmdline() =~ '^cw$')? 'copen' : 'cw'
 " Opens the quickfix even if there are no errors. I have other easy ways to close it.
 
+cnoreabbrev gdiff Git difftool -y
+" Opens all differences in seperate tabs with fugitive
+
+cnoreabbrev <expr> git (getcmdtype() == ':' && getcmdline() =~ '^git$')? 'Git' : 'git'
+" Shortcut for fugitive
 
 command! -nargs=1 -complete=file Diffsplit diffsplit <args> | wincmd p
 " Diff a file and switches focus back on the original file
@@ -246,6 +254,11 @@ if has("unix") && !has("gui_running") && system("uname") != "Darwin\n"
 endif
 " Linux terminals have this weird thing where alt commands don't work at all.
 "   I would die without my alt commands so this is a workaround.
+
+" Make it easier to get to command mode from the terminal
+if version >= 810
+   tnoremap <A-:> <C-w>:
+endif
 
 inoremap <A-e> <Esc>
 " Give an alternative to <Esc> that doesn't take your hand as far off of the keyboard
@@ -335,6 +348,8 @@ nnoremap <silent><A-J><A-J> :call ParagraphToEightyChars(1)<CR>
 nnoremap <silent>J maJ`a
 " Keep the cursor in the same place when doing a Join
 
+" TODO needs work
+"inoremap <expr><C-Space> pumvisible() ? '<C-n>' : '<C-o>:call MyCompleteFunc()<CR>'
 inoremap <C-Space> <C-n>
 " AutoComplete. (Activated with Ctrl+Space)
 
@@ -353,7 +368,7 @@ inoremap <C-l>  <Esc><C-W>l
 if version >= 810
    tnoremap <C-j>  <C-W>j
    tnoremap <C-k>  <C-W>k
-   tnoremap <C-h>  <C-W>h
+   tnoremap <C-h>  <C-u><C-W>h
    tnoremap <C-l>  <C-W>l
 endif
 " Same as the above but for termal splits (Only available starting in 8.1)
@@ -364,10 +379,8 @@ inoremap <C-d>   <C-o>:res +10<CR>
 nnoremap <C-s>   :vertical res +10<CR>
 inoremap <C-s>   <C-o>:vertical res +10<CR>
 " Increases size of splits incrementally
-nnoremap <expr> <C-a> search('0x\\|\(\<\)', "bpcn") == 1 ? "\<C-a>vUgUTxFxe" : "\<C-a>"
-nnoremap <expr> <C-x> search('0x\\|\(\<\)', "bpcn") == 1 ? "\<C-x>vUgUTxFxe" : "\<C-x>"
-" TODO: has problems when there are actual x's in the preceeding text.
-" Makes hex digits show up capital when auto-incrementing/decrementing
+nnoremap <C-a> :call SmartInc(1)<CR>
+nnoremap <C-x> :call SmartInc(0)<CR>
 
 nnoremap <A-y>   @q
 inoremap <A-y>   <Esc>@q
@@ -419,7 +432,9 @@ nnoremap <expr> <A-W> &diffopt=~'iwhite'? ":set diffopt-=iwhite<CR>" : ":set dif
 " Toggles whitespace diffing.
 nnoremap <expr> <A-u> &diff? "]c" : "<C-d>"
 nnoremap <expr> <A-i> &diff? "[c" : "<C-u>"
-" Move half a page down and up respectively
+vnoremap <A-u> "<C-d>"
+vnoremap <A-i> "<C-u>"
+" move half a page down and up respectively
 "  or (when in a diff) move to next/previous difference
 nnoremap <A-n>   .n
 inoremap <A-n>   <Esc>.n
@@ -487,6 +502,15 @@ elseif has("unix")
 else
    nnoremap <A-/> :!start gvim<CR>
 endif
+if version >= 810
+   if system('uname') == "Darwin\n"
+      tnoremap <D-/> <C-w>N:macaction newWindow:<CR>i
+   elseif has("unix")
+      tnoremap <A-/> <C-w>N:!gvim<CR>i
+   else
+      tnoremap <A-/> <C-w>N:!start gvim<CR>i
+   endif
+endif
 " Opens another gVim instance
 
 " Vimgrep
@@ -526,15 +550,14 @@ inoremap <F3>    <C-o>:call ToggleAutoScroll()<CR>
 nnoremap <silent><F4>  :let b:lastSearch = @/<CR>ma/{<CR>%y'a:let @/ = b:lastSearch<CR>
 inoremap <silent><F4>  <C-o>:let b:lastSearch = @/<CR>ma/{<CR>%y'a:let @/ = b:lastSearch<CR>
 " Yank C-style block
-nnoremap <F5>    :e<CR>
-inoremap <F5>    <C-o>:e<CR>
-" Reloads the current file from disk
 nnoremap <F5>    :e!<CR>
 inoremap <F5>    <C-o>:e!<CR>
 " Force reloads the current file from disk and abandons current changes
-nnoremap <C-F5>    :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
-inoremap <C-F5>    <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
+nnoremap <C-F5>  :syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
+inoremap <C-F5>  <Esc>:syn off<CR>:syn on<CR>:source $MYVIMRC<CR>
 " Reloads syntax file and vimrc
+nnoremap <expr> <S-F5> exists('g:loaded_ale')? ':ALEStopAllLSPs<CR>:ALELint<CR>' : ''
+" Restarts linter for it it gets out of sync
 nmap <F6> :call VimFunctionDoc()<CR>
 " Adds Tevis style documentation for functions
 " (Place cursor on function name and press F6)
@@ -552,22 +575,21 @@ nnoremap <silent><A-0> :call setqflist([]) \| cclose<CR>
 " Closes and wipes the quickfix so we can more easily traverse the location list.
 " (See <A-N> and <A-P>
 
+nnoremap <silent><A-)> :call setloclist(winnr(), []) \| lclose<CR>
+" Closes and wipes the location list.
+
 inoremap <S-Tab> <Esc>^<<a
 " Makes Shift+Tab work like expected
 
 nnoremap Q <C-q>
 " Don't need Ex mode, but visual block mode is useful
 
-vmap <expr> <LEFT>   exists('g:DVB_TrimWS')? DVB_Drag('left') : ''
-vmap <expr> <RIGHT>  exists('g:DVB_TrimWS')? DVB_Drag('right') : ''
-vmap <expr> <DOWN>   exists('g:DVB_TrimWS')? DVB_Drag('down') : ''
-vmap <expr> <UP>     exists('g:DVB_TrimWS')? DVB_Drag('up') : ''
-vmap <expr> D        exists('g:DVB_TrimWS')? DVB_Duplicate() : ''
-
 cnoremap %% %:p:h:t/%
 " Creates a generalized previous directory as well as file on the command line.
 
-
+vnoremap <A-c> :call execute("normal I". b:lineComment)<CR>
+vnoremap <A-x> :call execute("normal ^". strchars(b:lineComment) ."x")<CR>
+" Comment/uncomment selection block
 
 "< End of mappings
 
@@ -610,6 +632,7 @@ augroup Tumbler
    " Screw ftplugin; this is how I want my formatting!
 
    autocmd FileType gitcommit let g:in_git_commit = 1
+
 augroup END
 augroup QuickComments
    au!
@@ -619,6 +642,7 @@ augroup QuickComments
    autocmd BufReadPre  * nmap<buffer>  <A-x>   ^2x$<A-j>
    autocmd BufReadPre  * imap<buffer>  <A-x>   <Esc>^2x$<A-j>
                          " Generalized quick comments (C-style)
+   autocmd BufReadPre  * let b:lineComment = "//"
 
    " Filetype dependent stuff
 
@@ -637,7 +661,14 @@ augroup QuickComments
    autocmd FileType env      imap<buffer>  <A-c>   <Esc>I#<Esc>$<A-j>
    autocmd FileType env      nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType env      imap<buffer>  <A-x>   <Esc>^x$<A-j>
+   " sh
+   autocmd FileType sh       nmap<buffer>  <A-c>   I#<Esc>$<A-j>
+   autocmd FileType sh       imap<buffer>  <A-c>   <Esc>I#<Esc>$<A-j>
+   autocmd FileType sh       nmap<buffer>  <A-x>   ^x$<A-j>
+   autocmd FileType sh       imap<buffer>  <A-x>   <Esc>^x$<A-j>
                              " Script stle quick comments
+   autocmd FileType perl,python,env,sh let b:lineComment = "#"
+
    " HTML
    autocmd FileType html     nmap<buffer>  <A-c>   A--><Esc>I<!--<Esc>$<A-j>
    autocmd FileType html     imap<buffer>  <A-c>   <Esc>A--><Esc>I<!--<Esc>$<A-j>
@@ -650,18 +681,23 @@ augroup QuickComments
    autocmd FileType asm      nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType asm      imap<buffer>  <A-x>   <Esc>^x$<A-j>
                              " Assembly style quick comments
+   autocmd FileType asm      let b:lineComment = ";"
+
    " Batch
    autocmd FileType dosbatch nmap<buffer> <A-c>    I::<Esc>$<A-j>
    autocmd FileType dosbatch imap<buffer> <A-c>    <Esc>I::<Esc>$<A-j>
    autocmd FileType dosbatch nmap<buffer> <A-x>    ^2x$<A-j>
    autocmd FileType dosbatch imap<buffer> <A-x>    <Esc>^2x$<A-j>
                              " Batch style quick comments (May God have mercy on your soul)
+   autocmd FileType dosbatch let b:lineComment = "::"
+
    " Lua
    autocmd FileType lua      nmap<buffer> <A-c>    I--<Esc>$<A-j>
    autocmd FileType lua      imap<buffer> <A-c>    <Esc>I--<Esc>$<A-j>
    autocmd FileType lua      nmap<buffer> <A-x>    ^2x$<A-j>
    autocmd FileType lua      imap<buffer> <A-x>    <Esc>^2x$<A-j>
                              " Lua style quick comments
+   autocmd FileType dosbatch let b:lineComment = "--"
 
    " And of course we can't forget Vim files! :D
    autocmd FileType vim      nmap<buffer>  <A-c>   I"<Esc>$<A-j>
@@ -669,6 +705,7 @@ augroup QuickComments
    autocmd FileType vim      nmap<buffer>  <A-x>   ^x$<A-j>
    autocmd FileType vim      imap<buffer>  <A-x>   <Esc>^x$<A-j>
                              " Vim style quick comments
+   autocmd FileType vim      let b:lineComment = "\""
 
 augroup END
 endif
@@ -1245,8 +1282,7 @@ endfunction
 
 " SetMacAltMappings <><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Rekeys all alt mappings as command mappings. Only mappings from vimrc
-"          are considered. NOTE: Currently only does n, i, and c maps. You'll
-"          need to edit if you add v or o maps.
+"          are considered.
 "          Random: Use:
 "                      'defaults write org.vim.MacVim NSUserKeyEquivalents -dict-add "Quit MacVim" nil'
 "                      'defaults write org.vim.MacVim NSUserKeyEquivalents -dict-add "Settings..." nil'
@@ -1262,12 +1298,13 @@ function! s:SetMacAltMappings()
    let maps .= execute("verbose imap")
    let maps .= execute("verbose cmap")
    let maps .= execute("verbose tmap")
+   let maps .= execute("verbose vmap")
    let commentMaps = execute("autocmd QuickComments")
 
    " Archive map arguments for later use (because :map command doesn't tell us)
    let arguments = {}
    for line in readfile($MYVIMRC)
-      if (line =~ 'map <\(\(buffer\)\|\(nowait\)\|\(silent\)\|\(special\)\|\(script\)\|\(expr\)\|\(unique\)\)>\s*\S\+\s\+\S\+.*$')
+      if (line =~ '\(".*\)\@<!map <\(\(buffer\)\|\(nowait\)\|\(silent\)\|\(special\)\|\(script\)\|\(expr\)\|\(unique\)\)>\s*\S\+\s\+\S\+.*$')
          let argument = matchstr(line, '\(map \)\@<=<.\{-}>')
          let mapping = substitute(matchstr(line, '\(map '. argument .'\s*\)\@<=\S\+'), '<A-', '<M-', '')
          let arguments[mapping] = argument
@@ -1280,7 +1317,7 @@ function! s:SetMacAltMappings()
          let splitLine = split(prevLine, '\s\+')
          if (len(splitLine) > 2)
             let mode = splitLine[0]
-            if ((mode =~ '[nict]') && splitLine[1] =~ '<M-')
+            if ((mode =~ '[nictv]') && splitLine[1] =~ '<M-')
                let oldInput = splitLine[1]
                let input = substitute(oldInput, '<M-', '<D-', 'g')
                let rightHandSide = matchstr(prevLine, '\(<M-.\{-}>\s\+\(\* \)\=\)\@<=[^*]*$')
@@ -1311,27 +1348,23 @@ function! s:SetMacAltMappings()
 
       let line = substitute(line, '<M-\|<A-', '<D-', 'g')
 
-      let mode = ''
-      let left = ''
-      let right = ''
       let portion = SplitInTwo(line)
-      if (portion[1] =~ '^.map<buff')
-         let fileType = portion[0]
-         let portion = SplitInTwo(portion[1])
-      endif
-
-      if (portion[0] =~ '^.map<buff')
-         let mode = portion[0]
-         let portion = SplitInTwo(portion[1])
-      else
+      let command = ''
+      let start = match(line, '\S')
+      if (start == 0) 
          continue
       endif
 
-      let left = portion[0]
-      let right = portion[1]
-      if (event != '' && fileType != '')
+      if (start < 14)
+         let fileType = portion[0]
+         let command = portion[1]
+      else
+         let command = portion[0] .' '. portion[1]
+      endif
+
+      if (event != '' && fileType != '' && command != '')
          execute('augroup QuickComments')
-         execute('autocmd '. event .' '. fileType .' '. mode .' '. left .' '. right)
+         execute('autocmd '. event .' '. fileType .' '. command)
          execute('augroup END')
       endif
    endfor
@@ -1394,14 +1427,17 @@ endfunction
 
 function s:SmartQuit()
    if (&diff)
-      let startingBuf = bufnr()
+      let startingBuf = winnr()
       wincmd w
       while 1
          if (&diff)
+            if winnr() < startingBuf
+               let startingBuf = startingBuf - 1
+            endif
             quit
          endif
 
-         if startingBuf != bufnr()
+         if startingBuf != winnr()
             wincmd w
          else
             break
@@ -1426,8 +1462,8 @@ endfunction
 " SplitInTwo ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
 "   brief: Splits a string into two strings on a pattern
 "     input   - str: [string] The input string
-"               pat: [pattern] The pattren to split on
-"     returns - 
+"               pat: [pattern] The pattern to split on (defaults to whitespace)
+"     returns - [[2]string] The string split up into two parts
 function! SplitInTwo(str, ...)
    " Find index of first match of the pattern
    let pat = '\s\+'
@@ -1459,6 +1495,65 @@ function! SplitInTwo(str, ...)
 
    return [l:first, l:rest]
 endfunction
+
+" TODO needs work
+function! MyCompleteFunc() 
+   let word = expand("<cWORD>")
+   echom "word is ". word
+   echom getcompletion(word, 'expression')
+   echom len(getcompletion(word, 'expression')) > 0
+   if isdirectory(glob(word.'*')[0])
+      call feedkeys('')
+   elseif &ft == 'vim' && len(getcompletion(word, 'expression')) > 0
+      call feedkeys('')
+   else
+      call feedkeys('')
+   endif
+endfunc
+
+" SmartInc ><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><><>
+"   brief: Just like inc/dec but hex digits are capitalized and true/false gets
+"          toggled
+"     input   - inc: [bool] Weather to increment or decrement
+"     returns - void
+function! SmartInc(inc)
+   let word = expand("<cword>")
+
+   if word ==? "true"
+      if word ==# "True"
+         normal! ciwFalse
+      elseif word ==# "TRUE"
+         normal! ciwFALSE
+      else
+         normal! ciwfalse
+      endif
+      return
+   elseif word ==? "false"
+      if word ==# "False"
+         normal! ciwTrue
+      elseif word ==# "FALSE"
+         normal! ciwTRUE
+      else
+         normal! ciwtrue
+      endif
+      return
+   endif
+
+   if search('0x\|\(\<\)', "bpcn") == 1
+      if (a:inc)
+         exe "normal! \<C-a>vUgUTxFxe"
+      else
+         exe "normal! \<C-x>vUgUTxFxe"
+      endif
+   else
+      if (a:inc)
+         exe "normal! \<C-a>"
+      else
+         exe "normal! \<C-x>"
+      endif
+   endif
+
+endfunc
 
 "< End of Functions
 
