@@ -114,7 +114,8 @@ endif
 set omnifunc=syntaxcomplete#Complete
 " Attempt to intelligently fill the omnicomplete by filetype
 
-set completefunc=MyCompleteFunc
+" TODO needs work
+"set completefunc=MyCompleteFunc
 
 set formatoptions=jrql2
 " Remove extra comment headers when [J]oining
@@ -347,7 +348,9 @@ nnoremap <silent><A-J><A-J> :call ParagraphToEightyChars(1)<CR>
 nnoremap <silent>J maJ`a
 " Keep the cursor in the same place when doing a Join
 
-inoremap <expr><C-Space> pumvisible() ? '<C-n>' : '<C-o>:call MyCompleteFunc()<CR>'
+" TODO needs work
+"inoremap <expr><C-Space> pumvisible() ? '<C-n>' : '<C-o>:call MyCompleteFunc()<CR>'
+inoremap <C-Space> <C-n>
 " AutoComplete. (Activated with Ctrl+Space)
 
 " Change Focus Between Split Windows
@@ -1493,6 +1496,7 @@ function! SplitInTwo(str, ...)
    return [l:first, l:rest]
 endfunction
 
+" TODO needs work
 function! MyCompleteFunc() 
    let word = expand("<cWORD>")
    echom "word is ". word
