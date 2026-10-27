@@ -1443,6 +1443,17 @@ function s:SmartQuit()
             break
          endif
       endwhile
+   elseif (&ft == 'fugitiveblame')
+      close
+   elseif (&ft == 'undotree')
+      exe "normal \<F2>"
+   elseif (&ft == 'diff')
+      wincmd k
+      if (&ft == 'undotree')
+         exe "normal \<F2>"
+      else
+         wincmd j
+      endif
    else
       cclose
       lclose
